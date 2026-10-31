@@ -1,7 +1,9 @@
 # Carol AIO
 
-A small all-in-one Windows app that hosts several mini Python tools. Each tool
-gets an on/off toggle in the main window.
+A small all-in-one Windows app that hosts several mini Python tools. It lives in
+the system tray: click the icon to open a panel with an on/off switch for each
+tool, and click a tool's gear (⚙) to edit its settings in a small popup window.
+Right-click the icon to quit.
 
 ## Run from source
 
@@ -34,7 +36,7 @@ Pushes to `main`/`dev` also build the exe in GitHub Actions (artifact `CarolAIO`
 
 Settings live in `config.yaml` next to `CarolAIO.exe` (the repo root when run
 from source). It is created on first run. Click the gear (⚙) on a tool to edit
-its settings in the app, or edit the file directly; the running app picks up
+its settings in the popup, or edit the file directly; the running app picks up
 hand edits within a second. Invalid values fall back to defaults and are
 reported at the bottom of the window.
 

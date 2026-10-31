@@ -9,5 +9,5 @@ strict = true
 files = ["carol_aio", "tests", "main.py", "build.py"]
 
 [[tool.mypy.overrides]]
-module = ["pycaw.*", "comtypes.*", "PyInstaller.*"]
+module = ["pycaw.*", "comtypes.*", "PyInstaller.*", "pystray.*"]
 ignore_missing_imports = true

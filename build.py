@@ -13,5 +13,7 @@ PyInstaller.__main__.run(
         "--clean",
         "--collect-submodules",
         "comtypes",
+        "--hidden-import",
+        "pystray._win32",
     ]
 )
