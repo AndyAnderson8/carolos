@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.icon import bust_image, name_image
+from carol_aio.icon import figure_image, name_image
 
 
 class NameImageTest(unittest.TestCase):
@@ -20,13 +20,13 @@ class NameImageTest(unittest.TestCase):
         self.assertTrue(all(p[:3] == (255, 0, 0) for p in solid))
 
 
-class BustImageTest(unittest.TestCase):
-    def test_the_bust_is_the_requested_height(self) -> None:
-        self.assertEqual(bust_image(104).height, 104)
+class FigureImageTest(unittest.TestCase):
+    def test_the_figure_is_the_requested_height(self) -> None:
+        self.assertEqual(figure_image(104).height, 104)
 
-    def test_the_bust_is_a_tall_rectangle(self) -> None:
-        bust = bust_image(104)
-        self.assertLess(bust.width, bust.height * 0.9)
+    def test_the_figure_is_a_tall_rectangle(self) -> None:
+        figure = figure_image(104)
+        self.assertLess(figure.width, figure.height * 0.9)
 
 
 if __name__ == "__main__":
