@@ -61,10 +61,10 @@ class ConfigTest(unittest.TestCase):
 
     def test_path_precedence(self) -> None:
         with mock.patch.dict(os.environ, {cfg.ENV_VAR: "/env/c.yaml"}):
-            self.assertEqual(str(cfg.default_config_path()), "/env/c.yaml")
+            self.assertEqual(cfg.default_config_path(), Path("/env/c.yaml"))
             cfg.set_config_path("/cli/c.yaml")
             try:
-                self.assertEqual(str(cfg.default_config_path()), "/cli/c.yaml")
+                self.assertEqual(cfg.default_config_path(), Path("/cli/c.yaml"))
             finally:
                 cfg.set_config_path(None)
         with mock.patch.dict(os.environ, {}, clear=True):
