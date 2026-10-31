@@ -29,6 +29,13 @@ class BubbleTest(unittest.TestCase):
             assert isinstance(pixel, tuple)
             self.assertEqual(pixel[:3], (0xF4, 0xE6, 0xC6), dx)
 
+    def test_her_hand_sticks_out_past_the_left_edge(self) -> None:
+        art = render(300, 200, COLORS)
+        outside = art.content_x - 10 - 8  # a few pixels left of the bubble's edge (pad is 10)
+        column = [art.image.getpixel((outside, y)) for y in range(art.body_y, art.body_y + 140)]
+        solid = [p for p in column if isinstance(p, tuple) and p[3] > 200]
+        self.assertTrue(solid)
+
     def test_the_header_band_is_sea_coloured(self) -> None:
         art = render(300, 200, COLORS)
         pixel = art.image.getpixel((art.image.width - art.margin - 24, art.body_y + 14))
