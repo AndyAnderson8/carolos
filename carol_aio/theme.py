@@ -14,36 +14,44 @@ import tkinter as tk
 LOGO_PINK = "#fc80a3"
 LOGO_YELLOW = "#f9d92a"
 
-DARK = {
-    "PANEL": "#1d2226",
-    "RAISED": "#262d32",
-    "SELECTED": "#3a444b",  # the chosen segment of a choice control
-    "LINE": "#343d43",
-    "TEXT": "#e9e5dc",
-    "MUTED": "#8e999f",
-    "ACCENT": LOGO_PINK,
-    "FAULT": "#e87d6f",
-}
+# Beach by day, cocoa by night. Text and outlines are the brown of the logo's own outline.
 LIGHT = {
-    "PANEL": "#f7f8f9",
-    "RAISED": "#e8ecee",
-    "SELECTED": "#ffffff",
-    "LINE": "#d0d7db",
-    "TEXT": "#1b2227",
-    "MUTED": "#5d6a72",
+    "PANEL": "#f4e6c6",  # sand
+    "RAISED": "#ead8ad",
+    "SELECTED": "#fff6df",  # the chosen segment of a choice control
+    "LINE": "#d8c28f",
+    "OUTLINE": "#43261a",
+    "TEXT": "#43261a",
+    "MUTED": "#715a49",
     "ACCENT": LOGO_PINK,
     "FAULT": "#c4443a",
+    "SEA": "#1d93b3",  # header band, like the sea behind the icon
+}
+DARK = {
+    "PANEL": "#2a2024",
+    "RAISED": "#362b30",
+    "SELECTED": "#4d3d45",
+    "LINE": "#4a3b42",
+    "OUTLINE": "#6d5662",
+    "TEXT": "#f6e8c8",
+    "MUTED": "#b59f8d",
+    "ACCENT": LOGO_PINK,
+    "FAULT": "#e87d6f",
+    "SEA": "#176c82",
 }
 
 PANEL = DARK["PANEL"]
 RAISED = DARK["RAISED"]
 SELECTED = DARK["SELECTED"]
 LINE = DARK["LINE"]
+OUTLINE = DARK["OUTLINE"]
 TEXT = DARK["TEXT"]
 MUTED = DARK["MUTED"]
 ACCENT = DARK["ACCENT"]
 FAULT = DARK["FAULT"]
-ON_ACCENT = "#1d2226"  # text and knob sitting on the accent, in both themes
+SEA = DARK["SEA"]
+ON_ACCENT = "#43261a"  # text and knob sitting on the accent, in both themes
+ON_SEA = "#fff6df"  # text sitting on the header band, in both themes
 
 FONT = "Segoe UI"
 SYMBOLS = "Segoe UI Symbol"
@@ -54,6 +62,19 @@ _scale = 1.0
 def use(light: bool) -> None:
     """Switch every colour above to the light or dark palette."""
     globals().update(LIGHT if light else DARK)
+
+
+def round_corners(window: tk.Toplevel) -> None:
+    """Ask Windows 11 for smooth rounded corners on a borderless window (no-op elsewhere)."""
+    if sys.platform != "win32":
+        return
+    try:
+        window.update_idletasks()
+        hwnd = ctypes.windll.user32.GetAncestor(window.winfo_id(), 2)  # 2 = GA_ROOT
+        preference = ctypes.c_int(2)  # DWMWCP_ROUND
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 33, ctypes.byref(preference), 4)
+    except (AttributeError, OSError):
+        pass
 
 
 def system_is_light() -> bool:

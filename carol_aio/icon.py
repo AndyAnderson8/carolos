@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import base64
 import ctypes
-import io
 import sys
-import tkinter as tk
 from functools import cache
 from pathlib import Path
 
@@ -15,10 +12,10 @@ from PIL import Image, ImageDraw, ImageFont
 from carol_aio.theme import LOGO_YELLOW
 
 ART = Path(__file__).with_name("assets") / "pianta_face.png"
+BUST = Path(__file__).with_name("assets") / "pianta_bust.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "Carol AIO"
-SCALE = 4  # the lockup is drawn this many times larger, then shrunk, for smooth edges
-GAP = 10  # pixels between the face and the name
+SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
 PANEL = "#1d2226"
 
 
@@ -27,37 +24,31 @@ def _face() -> Image.Image:
     return Image.open(ART).convert("RGBA")
 
 
-def lockup_image(height: int, color: str) -> Image.Image:
-    """The face with "Carol AIO" beside it, both exactly ``height`` pixels tall.
+@cache
+def _bust() -> Image.Image:
+    return Image.open(BUST).convert("RGBA")
 
-    The name is drawn from the font's own measurements, so the letters' ink runs from the
-    very top of the face to the very bottom (not floating inside a text box) and the two
-    sit on the same line.
+
+def bust_image(height: int) -> Image.Image:
+    """Her head, upper body and the start of her skirt, ``height`` pixels tall."""
+    bust = _bust()
+    return bust.resize((round(bust.width * height / bust.height), height), Image.Resampling.LANCZOS)
+
+
+def name_image(height: int, color: str) -> Image.Image:
+    """ "Carol AIO" in Pacifico, with the letters' ink exactly ``height`` pixels tall.
+
+    Drawn from the font's own measurements, so the ink runs from the very top of the tallest
+    letter to the bottom of the line, with no empty text-box space above or below.
     """
     big = height * SCALE
-    face = _face()
-    face = face.crop(face.getbbox() or (0, 0, *face.size))
-    face = face.resize((round(face.width * big / face.height), big), Image.Resampling.LANCZOS)
-
     probe = ImageFont.truetype(str(TITLE_FONT), 1000)
     _, top, _, bottom = probe.getbbox(TITLE, anchor="ls")
     font = ImageFont.truetype(str(TITLE_FONT), round(1000 * big / (bottom - top)))
     left, top, right, _ = font.getbbox(TITLE, anchor="ls")  # relative to the baseline's left end
-
-    gap = GAP * SCALE
-    canvas = Image.new("RGBA", (face.width + gap + round(right - left), big), (0, 0, 0, 0))
-    canvas.alpha_composite(face, (0, 0))
-    ImageDraw.Draw(canvas).text(
-        (face.width + gap - left, -top), TITLE, font=font, fill=color, anchor="ls"
-    )
+    canvas = Image.new("RGBA", (round(right - left), big), (0, 0, 0, 0))
+    ImageDraw.Draw(canvas).text((-left, -top), TITLE, font=font, fill=color, anchor="ls")
     return canvas.resize((round(canvas.width / SCALE), height), Image.Resampling.LANCZOS)
-
-
-def lockup_photo(height: int, color: str) -> tk.PhotoImage:
-    """``lockup_image`` as a Tk image, for the panel header."""
-    buffer = io.BytesIO()
-    lockup_image(height, color).save(buffer, "PNG")
-    return tk.PhotoImage(data=base64.b64encode(buffer.getvalue()))
 
 
 def tray_pixels() -> int:

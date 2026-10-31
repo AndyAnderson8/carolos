@@ -72,23 +72,29 @@ class Switch(tk.Canvas):
         self._draw()
         self._after = self.after(SLIDE_MS, self._slide, target, step + 1)
 
+    def _pill(self, x0: float, y0: float, x1: float, y1: float, color: str) -> None:
+        r = y1 - y0
+        self.create_oval(x0, y0, x0 + r, y1, fill=color, outline=color)
+        self.create_oval(x1 - r, y0, x1, y1, fill=color, outline=color)
+        self.create_rectangle(x0 + r / 2, y0, x1 - r / 2, y1, fill=color, outline=color)
+
     def _draw(self) -> None:
         self.delete("all")
-        pad, w, h = px(2), self._width, self._height
+        pad, edge, gap = px(2), px(2), px(2)
         lit = self._pos > 0.5
-        track = theme.ACCENT if lit else theme.LINE
-        r = h - 2 * pad
-        x0, y0, x1, y1 = pad, pad, w - pad, h - pad
-        self.create_oval(x0, y0, x0 + r, y1, fill=track, outline=track)
-        self.create_oval(x1 - r, y0, x1, y1, fill=track, outline=track)
-        self.create_rectangle(x0 + r // 2, y0, x1 - r // 2, y1, fill=track, outline=track)
-        knob = r - 2 * px(3)
-        left = x0 + px(3) + (x1 - x0 - 2 * px(3) - knob) * self._pos
+        x0, y0, x1, y1 = pad, pad, self._width - pad, self._height - pad
+        self._pill(x0, y0, x1, y1, theme.OUTLINE)  # the chunky outline, then the track inside it
+        self._pill(x0 + edge, y0 + edge, x1 - edge, y1 - edge, theme.ACCENT if lit else theme.LINE)
+        inner_h = y1 - y0 - 2 * edge
+        knob = inner_h - 2 * gap
+        travel = x1 - x0 - 2 * edge - 2 * gap - knob
+        left = x0 + edge + gap + travel * self._pos
+        top = y0 + edge + gap
         self.create_oval(
             left,
-            y0 + px(3),
+            top,
             left + knob,
-            y0 + px(3) + knob,
+            top + knob,
             fill=theme.ON_ACCENT if lit else theme.MUTED,
             outline="",
         )
@@ -104,13 +110,16 @@ class GearButton(tk.Label):
         bg: str | None = None,
         glyph: str = "⚙",
         size: int = 14,
+        color: str | None = None,
+        hover: str | None = None,
     ) -> None:
         bg = bg or theme.PANEL
+        color, hover = color or theme.MUTED, hover or theme.TEXT
         super().__init__(
             parent,
             text=glyph,
             font=(theme.SYMBOLS, size),
-            fg=theme.MUTED,
+            fg=color,
             bg=bg,
             cursor="hand2",
             takefocus=True,
@@ -122,8 +131,8 @@ class GearButton(tk.Label):
         self.bind("<Button-1>", lambda _e: command())
         self.bind("<Return>", lambda _e: command())
         self.bind("<space>", lambda _e: command())
-        self.bind("<Enter>", lambda _e: self.configure(fg=theme.TEXT))
-        self.bind("<Leave>", lambda _e: self.configure(fg=theme.MUTED))
+        self.bind("<Enter>", lambda _e: self.configure(fg=hover))
+        self.bind("<Leave>", lambda _e: self.configure(fg=color))
 
 
 def flat_button(
@@ -151,7 +160,7 @@ def flat_button(
         pady=px(5),
         cursor="hand2",
         highlightthickness=2,
-        highlightbackground=theme.PANEL,
+        highlightbackground=theme.OUTLINE if primary else theme.PANEL,
         highlightcolor=theme.TEXT,
     )
 
