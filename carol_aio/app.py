@@ -1,10 +1,11 @@
 """Main window: one row per tool with an on/off toggle and a settings gear."""
 
+import argparse
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from carol_aio import __version__
-from carol_aio.config import Config, ConfigError
+from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.tools import create_tools
 
 CONFIG_POLL_MS = 1000
@@ -183,5 +184,9 @@ class App(tk.Tk):
         self.destroy()
 
 
-def main():
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="Carol AIO")
+    parser.add_argument("--config", metavar="PATH",
+                        help=f"config file to use (or set ${ENV_VAR}); default: next to the app")
+    set_config_path(parser.parse_args(argv).config)
     App().mainloop()
