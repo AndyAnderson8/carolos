@@ -5,11 +5,13 @@ import PyInstaller.__main__
 PyInstaller.__main__.run(
     [
         "main.py",
-        "--name", "CarolAIO",
+        "--name",
+        "CarolAIO",
         "--onefile",
         "--windowed",
         "--noconfirm",
         "--clean",
-        "--collect-submodules", "comtypes",
+        "--collect-submodules",
+        "comtypes",
     ]
 )
