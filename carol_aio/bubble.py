@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from carol_aio.icon import figure_image, name_image
+from carol_aio.icon import figure_image, hand_image, name_image
 
 SS = 3  # drawn this many times larger, then shrunk, so the edges are smooth
 NECK = 0.615  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
@@ -108,9 +108,7 @@ def render(
     left = s(34)  # extra room on the left: her hand sticks out past the edge
     band, amplitude, wavelength, tail_h = s(100), s(3), s(46), s(16)
     body_w = content_w + 2 * pad
-    clear = line + s(
-        3
-    )  # sand between the wave and the controls, so the shrinking can't blur into them
+    clear = s(24)  # sand between the wave and the controls: room for her hand, and no blur
     body_h = band + amplitude + clear + content_h + pad
     width = left + body_w + margin
     height = top + body_h + (tail_h if tail else 0) + margin
@@ -150,6 +148,8 @@ def render(
     placed.putalpha(ImageChops.multiply(placed.getchannel("A"), above))
     layer.alpha_composite(placed)
     draw.line(wave, fill=colors.outline, width=line * SS)
+    # Her left hand is drawn last, unclipped, so the wavy edge passes behind it, not through it.
+    layer.alpha_composite(hand_image(figure_h * SS), (figure_x, figure_y))
     bubble = layer.resize((width, height), Image.Resampling.LANCZOS)
 
     # A soft shadow underneath, drawn at normal size.

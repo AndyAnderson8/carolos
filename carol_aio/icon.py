@@ -1,4 +1,4 @@
-"""Tray icon: the app artwork over a "running/total" count."""
+"""The character artwork: the panel header pieces and the tray icon."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from carol_aio.theme import LOGO_YELLOW
 
-ART = Path(__file__).with_name("assets") / "avatar_face.png"
 FIGURE = Path(__file__).with_name("assets") / "avatar_figure.png"
+HAND = Path(__file__).with_name("assets") / "avatar_hand.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "Carol AIO"
 SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
@@ -20,21 +20,27 @@ PANEL = "#1d2226"
 
 
 @cache
-def _face() -> Image.Image:
-    return Image.open(ART).convert("RGBA")
-
-
-@cache
 def _figure() -> Image.Image:
     return Image.open(FIGURE).convert("RGBA")
 
 
+@cache
+def _hand() -> Image.Image:
+    return Image.open(HAND).convert("RGBA")
+
+
 def figure_image(height: int) -> Image.Image:
-    """Her head, upper body and the start of her skirt, ``height`` pixels tall."""
+    """Her whole figure, from the palm to her feet, ``height`` pixels tall."""
     figure = _figure()
     return figure.resize(
         (round(figure.width * height / figure.height), height), Image.Resampling.LANCZOS
     )
+
+
+def hand_image(height: int) -> Image.Image:
+    """Just her left hand and forearm, on a canvas exactly the size ``figure_image`` gives."""
+    hand = _hand()
+    return hand.resize((round(hand.width * height / hand.height), height), Image.Resampling.LANCZOS)
 
 
 def name_image(height: int, color: str) -> Image.Image:
@@ -73,16 +79,22 @@ def _font(px: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 
 def tray_icon(running: int, total: int, size: int) -> Image.Image:
-    """A close-up of the face over a "running/total" count; grey when nothing is running."""
-    art = _face()
-    face_h = max(1, round(size * art.height / art.width))
-    art = art.resize((size, face_h), Image.Resampling.LANCZOS)
+    """Her whole figure over a "running/total" count; grey when nothing is running.
+
+    The figure is what makes it recognisable at this size: the palm, the pink body and the
+    yellow skirt.
+    """
+    figure = _figure()
+    height = round(size * 0.70)
+    art = figure.resize(
+        (max(1, round(figure.width * height / figure.height)), height), Image.Resampling.LANCZOS
+    )
     if running == 0:
         grey = art.convert("LA").convert("RGBA")
         grey.putalpha(art.getchannel("A").point(lambda a: int(a * 0.7)))
         art = grey
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    canvas.alpha_composite(art, (0, 0))
+    canvas.alpha_composite(art, ((size - art.width) // 2, 0))
 
     scale = 4
     big = Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
