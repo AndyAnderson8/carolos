@@ -10,5 +10,6 @@ PyInstaller.__main__.run(
         "--windowed",
         "--noconfirm",
         "--clean",
+        "--collect-submodules", "comtypes",
     ]
 )
