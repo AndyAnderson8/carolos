@@ -11,10 +11,10 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from carol_aio import __version__, install, single, theme
+from carol_aio import __version__, bubble, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
-from carol_aio.icon import lockup_photo
+from carol_aio.layered import LayeredWindow
 from carol_aio.theme import FONT, px
 from carol_aio.tool import Field, Tool
 from carol_aio.tools import create_tools
@@ -263,22 +263,19 @@ class Flyout(tk.Toplevel):
         on_gear: Callable[[Tool], None],
         on_check: Callable[[], None],
     ) -> None:
-        super().__init__(parent, bg=theme.OUTLINE)
+        super().__init__(parent, bg=theme.PANEL)
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         self.withdraw()
         self.rows: dict[str, ToolRow] = {}
         self._hidden_at = 0.0
         self.status = tk.StringVar()
+        self.shape = LayeredWindow()  # the bubble outline, header and tail, drawn as an image
+        self._art: dict[tuple[object, ...], bubble.Bubble] = {}
 
-        # The outer frame colour (OUTLINE) shows through as a chunky edge, like the logo's.
+        # This window holds only the controls; the bubble round it is drawn by ``self.shape``.
         panel = tk.Frame(self, bg=theme.PANEL, width=px(FLYOUT_WIDTH))
-        panel.pack(fill="both", expand=True, padx=px(2), pady=px(2))
-        header = tk.Frame(panel, bg=theme.SEA, padx=px(18), pady=px(12))
-        header.pack(fill="x")
-        self._lockup = lockup_photo(px(26), theme.ON_SEA)  # kept on self so Tk doesn't drop it
-        tk.Label(header, image=self._lockup, bg=theme.SEA).pack(side="left")
-        tk.Frame(panel, bg=theme.OUTLINE, height=px(2)).pack(fill="x")
+        panel.pack(fill="both", expand=True)
         tk.Label(
             panel,
             text="Tools",
@@ -287,7 +284,7 @@ class Flyout(tk.Toplevel):
             bg=theme.PANEL,
             anchor="w",
             padx=px(18),
-        ).pack(fill="x", pady=(px(10), 0))
+        ).pack(fill="x", pady=(px(2), 0))
 
         if not tools:
             tk.Label(
@@ -327,7 +324,6 @@ class Flyout(tk.Toplevel):
         self.status.trace_add("write", lambda *_: self._show_status())
         self.bind("<Escape>", lambda _e: self.hide())
         self.bind("<FocusOut>", lambda _e: self.after(80, self._hide_if_unfocused))
-        theme.round_corners(self)
 
     def _show_status(self) -> None:
         if self.status.get():
@@ -353,8 +349,12 @@ class Flyout(tk.Toplevel):
             row.sync()
         self.update_idletasks()
         w, h = self.winfo_reqwidth(), self.winfo_reqheight()
+        art = self._bubble(w, h)
         right, bottom = self.corner()
-        self.geometry(f"{w}x{h}+{right - w}+{bottom - h}")
+        x = right - art.image.width + art.margin  # the bubble's visible edge ends at the corner
+        y = bottom - art.image.height + art.margin
+        self.shape.show(art.image, x, y)
+        self.geometry(f"{w}x{h}+{x + art.content_x}+{y + art.content_y}")
         self.deiconify()
         self.lift()
         self.focus_force()
@@ -362,6 +362,25 @@ class Flyout(tk.Toplevel):
     def hide(self) -> None:
         self._hidden_at = time.monotonic()
         self.withdraw()
+        self.shape.hide()
+
+    def destroy(self) -> None:
+        self.shape.destroy()
+        super().destroy()
+
+    def _bubble(self, width: int, height: int) -> bubble.Bubble:
+        """The bubble art for a controls window of this size (cached; it takes a moment to draw)."""
+        tail = (
+            theme.work_area(self)[3] < self.winfo_screenheight() - 2
+        )  # a taskbar below to point at
+        key = (width, height, tail, theme.PANEL, theme.OUTLINE, theme.SEA)
+        if key not in self._art:
+            dark = theme.PANEL == theme.DARK["PANEL"]
+            colors = bubble.BubbleColors(
+                theme.PANEL, theme.OUTLINE, theme.SEA, theme.ON_SEA, 0.5 if dark else 0.25
+            )
+            self._art[key] = bubble.render(width, height, colors, px, tail)
+        return self._art[key]
 
     def toggle(self) -> None:
         if self.visible:
