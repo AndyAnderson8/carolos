@@ -25,7 +25,7 @@ CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
 AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
-FLYOUT_WIDTH = 340
+FLYOUT_WIDTH = 370
 EDGE_GAP = 12
 
 

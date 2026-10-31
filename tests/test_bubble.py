@@ -22,6 +22,13 @@ class BubbleTest(unittest.TestCase):
             self.assertEqual(pixel[3], 255, point)
             self.assertEqual(pixel[:3], (0xF4, 0xE6, 0xC6), point)  # same sand as the controls
 
+    def test_she_does_not_spill_below_the_wave(self) -> None:
+        art = render(300, 200, COLORS)
+        for dx in (10, 40, 70):  # across where she stands
+            pixel = art.image.getpixel((art.content_x + dx, art.content_y + 2))
+            assert isinstance(pixel, tuple)
+            self.assertEqual(pixel[:3], (0xF4, 0xE6, 0xC6), dx)
+
     def test_the_header_band_is_sea_coloured(self) -> None:
         art = render(300, 200, COLORS)
         pixel = art.image.getpixel((art.image.width - art.margin - 24, art.margin + 14))

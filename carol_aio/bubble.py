@@ -1,8 +1,8 @@
 """The flyout's speech-bubble shape, drawn as one image with smooth, transparent edges.
 
 The image holds everything that isn't a control: a soft shadow, the outlined bubble with
-its tail pointing at the tray, the wavy sea-coloured header band, and the face and name
-(the face peeks up over the top edge). The panel's real controls sit in a plain window
+its tail pointing at the tray, the wavy sea-coloured header band, and her and the name
+(she rises out of the band, over the top edge). The panel's real controls sit in a plain window
 placed over the empty body area.
 """
 
@@ -14,9 +14,10 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from carol_aio.icon import face_image, name_image
+from carol_aio.icon import bust_image, name_image
 
 SS = 3  # drawn this many times larger, then shrunk, so the edges are smooth
+NECK = 0.60  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
 Point = tuple[float, float]
 
 
@@ -97,7 +98,7 @@ def render(
     """
     s = scale
     margin, pad, line, radius = s(18), s(10), s(2), s(22)
-    band, amplitude, wavelength, tail_h = s(58), s(3), s(46), s(16)
+    band, amplitude, wavelength, tail_h = s(72), s(3), s(46), s(16)
     body_w = content_w + 2 * pad
     clear = line + s(
         3
@@ -124,8 +125,19 @@ def render(
     above = Image.new("L", layer.size, 0)
     ImageDraw.Draw(above).polygon([(x0 * SS, 0), *wave, (x1 * SS, 0)], fill=255)
     layer.paste(colors.sea, mask=ImageChops.multiply(inside, above))
-    draw.line(wave, fill=colors.outline, width=line * SS)
     draw.line([*big, big[0]], fill=colors.outline, width=line * SS, joint="curve")
+
+    # Her head and upper body rise out of the band, over the top edge. The body below the wave
+    # is in front of her, so the wave reads as the top of her outfit.
+    figure_h = s(134)
+    figure = bust_image(figure_h * SS)
+    figure_x = (x0 + s(8)) * SS
+    figure_y = round((y0 + band - NECK * figure_h) * SS)  # where the wave crosses her
+    placed = Image.new("RGBA", layer.size, (0, 0, 0, 0))
+    placed.alpha_composite(figure, (figure_x, figure_y))
+    placed.putalpha(ImageChops.multiply(placed.getchannel("A"), above))
+    layer.alpha_composite(placed)
+    draw.line(wave, fill=colors.outline, width=line * SS)
     bubble = layer.resize((width, height), Image.Resampling.LANCZOS)
 
     # A soft shadow underneath, drawn at normal size.
@@ -138,10 +150,8 @@ def render(
     out.paste((0, 0, 0, 255), mask=shadow)
     out.alpha_composite(bubble)
 
-    # The face and the name share a baseline; the face is taller, so it peeks over the top.
-    baseline = y0 + s(44)
-    face = face_image(s(54))
-    out.alpha_composite(face, (x0 + s(14), baseline - face.height))
-    name = name_image(s(30), colors.on_sea)
-    out.alpha_composite(name, (x0 + s(14) + face.width + s(8), baseline - name.height))
+    # The name sits beside her, on the band.
+    baseline = y0 + s(48)
+    name = name_image(s(28), colors.on_sea)
+    out.alpha_composite(name, (x0 + s(8) + round(figure.width / SS) + s(8), baseline - name.height))
     return Bubble(out, x0 + pad, y0 + band + amplitude + clear, margin)

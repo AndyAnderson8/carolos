@@ -12,6 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 from carol_aio.theme import LOGO_YELLOW
 
 ART = Path(__file__).with_name("assets") / "pianta_face.png"
+BUST = Path(__file__).with_name("assets") / "pianta_bust.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "Carol AIO"
 SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
@@ -23,11 +24,15 @@ def _face() -> Image.Image:
     return Image.open(ART).convert("RGBA")
 
 
-def face_image(height: int) -> Image.Image:
-    """The little face, cropped to its edges and ``height`` pixels tall."""
-    face = _face()
-    face = face.crop(face.getbbox() or (0, 0, *face.size))
-    return face.resize((round(face.width * height / face.height), height), Image.Resampling.LANCZOS)
+@cache
+def _bust() -> Image.Image:
+    return Image.open(BUST).convert("RGBA")
+
+
+def bust_image(height: int) -> Image.Image:
+    """Her head, upper body and the start of her skirt, ``height`` pixels tall."""
+    bust = _bust()
+    return bust.resize((round(bust.width * height / bust.height), height), Image.Resampling.LANCZOS)
 
 
 def name_image(height: int, color: str) -> Image.Image:

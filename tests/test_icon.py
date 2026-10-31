@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.icon import face_image, name_image
+from carol_aio.icon import bust_image, name_image
 
 
 class NameImageTest(unittest.TestCase):
@@ -20,13 +20,13 @@ class NameImageTest(unittest.TestCase):
         self.assertTrue(all(p[:3] == (255, 0, 0) for p in solid))
 
 
-class FaceImageTest(unittest.TestCase):
-    def test_the_face_is_the_requested_height(self) -> None:
-        self.assertEqual(face_image(54).height, 54)
+class BustImageTest(unittest.TestCase):
+    def test_the_bust_is_the_requested_height(self) -> None:
+        self.assertEqual(bust_image(104).height, 104)
 
-    def test_the_face_is_wider_than_tall(self) -> None:
-        face = face_image(54)
-        self.assertGreater(face.width, face.height)
+    def test_the_bust_is_taller_than_the_face_crop_not_wider(self) -> None:
+        bust = bust_image(104)
+        self.assertLess(bust.width, bust.height * 1.05)  # roughly as tall as wide, not a wide strip
 
 
 if __name__ == "__main__":
