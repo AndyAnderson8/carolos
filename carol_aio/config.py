@@ -58,21 +58,23 @@ class Config:
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path) if path else default_config_path()
         self.data: dict[str, Any] = {"tools": {}}
-        self._mtime: int | None = None
+        self._signature: tuple[int, int] | None = None
 
-    def _disk_mtime(self) -> int | None:
+    def _disk_signature(self) -> tuple[int, int] | None:
+        """Modified time plus size, so same-tick edits that change length are seen."""
         try:
-            return self.path.stat().st_mtime_ns
+            stat = self.path.stat()
+            return (stat.st_mtime_ns, stat.st_size)
         except OSError:
             return None
 
     def changed_on_disk(self) -> bool:
-        return self._disk_mtime() != self._mtime
+        return self._disk_signature() != self._signature
 
     def load(self) -> None:
         """Read the file. Raises ConfigError (keeping old data) if it is invalid."""
-        self._mtime = self._disk_mtime()
-        if self._mtime is None:
+        self._signature = self._disk_signature()
+        if self._signature is None:
             return
         try:
             raw = yaml.safe_load(self.path.read_text(encoding="utf-8"))
@@ -112,4 +114,4 @@ class Config:
         tmp = self.path.with_name(self.path.name + ".tmp")
         tmp.write_text(text, encoding="utf-8")
         os.replace(tmp, self.path)
-        self._mtime = self._disk_mtime()
+        self._signature = self._disk_signature()
