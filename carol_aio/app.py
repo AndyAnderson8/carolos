@@ -42,7 +42,7 @@ class SettingsDialog(tk.Toplevel):
         on_save: Callable[[Tool, dict[str, Any]], None],
         anchor: tuple[int, int],
     ) -> None:
-        super().__init__(parent, bg=theme.LINE)
+        super().__init__(parent, bg=theme.OUTLINE)
         self.tool, self.on_save = tool, on_save
         self.overrideredirect(True)
         self.attributes("-topmost", True)
@@ -50,17 +50,25 @@ class SettingsDialog(tk.Toplevel):
         self.setters: dict[str, Callable[[Any], None]] = {}
         self.shown = [f for f in tool.fields if not f.advanced]
         self.width = px(FLYOUT_WIDTH)
-        wrap = self.width - px(36) - 2
+        wrap = self.width - px(36) - px(4)
 
         panel = tk.Frame(self, bg=theme.PANEL)
-        panel.pack(fill="both", expand=True, padx=1, pady=1)
-        header = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(10))
+        panel.pack(fill="both", expand=True, padx=px(2), pady=px(2))
+        header = tk.Frame(panel, bg=theme.SEA, padx=px(18), pady=px(10))
         header.pack(fill="x")
         tk.Label(
-            header, text=tool.name, font=(FONT, 11, "bold"), fg=theme.TEXT, bg=theme.PANEL
+            header, text=tool.name, font=(FONT, 11, "bold"), fg=theme.ON_SEA, bg=theme.SEA
         ).pack(side="left")
-        GearButton(header, self.destroy, glyph="\u2715", size=11).pack(side="right")
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
+        GearButton(
+            header,
+            self.destroy,
+            bg=theme.SEA,
+            color=theme.ON_SEA,
+            hover="#ffffff",
+            glyph="\u2715",
+            size=11,
+        ).pack(side="right")
+        tk.Frame(panel, bg=theme.OUTLINE, height=px(2)).pack(fill="x")
 
         body = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(16))
         body.pack(fill="x")
@@ -96,6 +104,7 @@ class SettingsDialog(tk.Toplevel):
         flat_button(footer, "Cancel", self.destroy, quiet=True).pack(side="right", padx=(0, px(4)))
 
         self.bind("<Escape>", lambda _e: self.destroy())
+        theme.round_corners(self)
         self._place(anchor)
         self.after_idle(self.focus_force)
 
@@ -254,7 +263,7 @@ class Flyout(tk.Toplevel):
         on_gear: Callable[[Tool], None],
         on_check: Callable[[], None],
     ) -> None:
-        super().__init__(parent, bg=theme.LINE)
+        super().__init__(parent, bg=theme.OUTLINE)
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         self.withdraw()
@@ -262,14 +271,14 @@ class Flyout(tk.Toplevel):
         self._hidden_at = 0.0
         self.status = tk.StringVar()
 
-        # The 1px outer frame colour (LINE) shows through as the panel's edge.
+        # The outer frame colour (OUTLINE) shows through as a chunky edge, like the logo's.
         panel = tk.Frame(self, bg=theme.PANEL, width=px(FLYOUT_WIDTH))
-        panel.pack(fill="both", expand=True, padx=1, pady=1)
-        header = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(12))
+        panel.pack(fill="both", expand=True, padx=px(2), pady=px(2))
+        header = tk.Frame(panel, bg=theme.SEA, padx=px(18), pady=px(12))
         header.pack(fill="x")
-        self._lockup = lockup_photo(px(26), theme.TEXT)  # kept on self so Tk doesn't drop it
-        tk.Label(header, image=self._lockup, bg=theme.PANEL).pack(side="left")
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
+        self._lockup = lockup_photo(px(26), theme.ON_SEA)  # kept on self so Tk doesn't drop it
+        tk.Label(header, image=self._lockup, bg=theme.SEA).pack(side="left")
+        tk.Frame(panel, bg=theme.OUTLINE, height=px(2)).pack(fill="x")
         tk.Label(
             panel,
             text="Tools",
@@ -318,6 +327,7 @@ class Flyout(tk.Toplevel):
         self.status.trace_add("write", lambda *_: self._show_status())
         self.bind("<Escape>", lambda _e: self.hide())
         self.bind("<FocusOut>", lambda _e: self.after(80, self._hide_if_unfocused))
+        theme.round_corners(self)
 
     def _show_status(self) -> None:
         if self.status.get():

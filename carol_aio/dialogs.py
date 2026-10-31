@@ -34,27 +34,27 @@ class Prompt(tk.Toplevel):
         choices: list[Choice],
         detail: str = "",
     ) -> None:
-        super().__init__(parent, bg=theme.LINE)
+        super().__init__(parent, bg=theme.OUTLINE)
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         self._choices: list[Choice] = []
         self._buttons: list[tk.Button] = []
         self._fraction: float | None = None
-        wrap = px(WIDTH) - px(36) - 2
+        wrap = px(WIDTH) - px(36) - px(4)
 
         panel = tk.Frame(self, bg=theme.PANEL)
-        panel.pack(fill="both", expand=True, padx=1, pady=1)
+        panel.pack(fill="both", expand=True, padx=px(2), pady=px(2))
         tk.Label(
             panel,
             text=title,
             font=(FONT, 11, "bold"),
-            fg=theme.TEXT,
-            bg=theme.PANEL,
+            fg=theme.ON_SEA,
+            bg=theme.SEA,
             anchor="w",
             padx=px(18),
             pady=px(12),
         ).pack(fill="x")
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
+        tk.Frame(panel, bg=theme.OUTLINE, height=px(2)).pack(fill="x")
 
         body = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(16))
         body.pack(fill="x")
@@ -99,6 +99,7 @@ class Prompt(tk.Toplevel):
 
         self.bind("<Escape>", lambda _e: self._escape())
         self.bind("<Return>", lambda _e: self._enter())
+        theme.round_corners(self)
         self._fit()
         self.after_idle(self.focus_force)
 
