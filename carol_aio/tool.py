@@ -1,7 +1,11 @@
 """Base class every mini-tool derives from."""
 
+from __future__ import annotations
+
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -11,12 +15,12 @@ class Field:
     key: str
     label: str
     type: type  # float, int, str or bool
-    default: object
-    min: float = None
-    max: float = None
+    default: Any
+    min: float | None = None
+    max: float | None = None
     help: str = ""
 
-    def coerce(self, value):
+    def coerce(self, value: Any) -> Any:
         """Return ``value`` as this field's type or raise ValueError."""
         if self.type is bool:
             if isinstance(value, bool):
@@ -38,7 +42,9 @@ class Field:
             number = self.type(value)
         except (TypeError, ValueError):
             raise ValueError(f"{value!r} is not a valid {self.type.__name__}") from None
-        if (self.min is not None and number < self.min) or (self.max is not None and number > self.max):
+        if (self.min is not None and number < self.min) or (
+            self.max is not None and number > self.max
+        ):
             raise ValueError(f"must be between {self.min} and {self.max}")
         return number
 
@@ -54,19 +60,19 @@ class Tool:
     key = ""
     name = ""
     description = ""
-    fields = ()  # Field definitions; empty means the tool has no settings
+    fields: tuple[Field, ...] = ()  # empty means the tool has no settings
 
-    def __init__(self):
-        self.settings = self.defaults()
+    def __init__(self) -> None:
+        self.settings: dict[str, Any] = self.defaults()
         self._running = False
         self._stop_event = threading.Event()
-        self._thread = None
+        self._thread: threading.Thread | None = None
 
     @property
-    def running(self):
+    def running(self) -> bool:
         return self._running
 
-    def start(self):
+    def start(self) -> None:
         if self._running:
             return
         self._stop_event.clear()
@@ -77,7 +83,7 @@ class Tool:
             self._running = False
             raise
 
-    def stop(self):
+    def stop(self) -> None:
         if not self._running:
             return
         self._running = False
@@ -89,10 +95,10 @@ class Tool:
                 self._thread.join(timeout=2)
             self._thread = None
 
-    def defaults(self):
+    def defaults(self) -> dict[str, Any]:
         return {f.key: f.default for f in self.fields}
 
-    def configure(self, raw):
+    def configure(self, raw: Any) -> list[str]:
         """Validate ``raw`` against ``fields`` and swap in the result.
 
         Invalid or missing values fall back to defaults. Returns a list of
@@ -100,7 +106,8 @@ class Tool:
         threads can safely read ``self.settings`` at any time.
         """
         raw = raw if isinstance(raw, dict) else {}
-        settings, errors = self.defaults(), []
+        settings = self.defaults()
+        errors: list[str] = []
         for f in self.fields:
             if f.key in raw:
                 try:
@@ -110,18 +117,21 @@ class Tool:
         self.settings = settings
         return errors
 
-    def set_enabled(self, enabled):
-        self.start() if enabled else self.stop()
+    def set_enabled(self, enabled: bool) -> None:
+        if enabled:
+            self.start()
+        else:
+            self.stop()
 
-    def run_in_thread(self, target):
+    def run_in_thread(self, target: Callable[[threading.Event], None]) -> None:
         """Run ``target(stop_event)`` on a daemon thread until the tool stops."""
         self._thread = threading.Thread(
             target=target, args=(self._stop_event,), name=self.key or self.name, daemon=True
         )
         self._thread.start()
 
-    def on_start(self):
+    def on_start(self) -> None:
         raise NotImplementedError
 
-    def on_stop(self):
+    def on_stop(self) -> None:
         pass
