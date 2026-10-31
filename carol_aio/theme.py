@@ -10,6 +10,10 @@ import ctypes
 import sys
 import tkinter as tk
 
+# The logo's own colours: the accent is its pink, and the tray count uses its yellow.
+LOGO_PINK = "#fc80a3"
+LOGO_YELLOW = "#f9d92a"
+
 DARK = {
     "PANEL": "#1d2226",
     "RAISED": "#262d32",
@@ -17,7 +21,7 @@ DARK = {
     "LINE": "#343d43",
     "TEXT": "#e9e5dc",
     "MUTED": "#8e999f",
-    "LAMP": "#f2b544",
+    "ACCENT": LOGO_PINK,
     "FAULT": "#e87d6f",
 }
 LIGHT = {
@@ -27,7 +31,7 @@ LIGHT = {
     "LINE": "#d0d7db",
     "TEXT": "#1b2227",
     "MUTED": "#5d6a72",
-    "LAMP": "#f2b544",
+    "ACCENT": LOGO_PINK,
     "FAULT": "#c4443a",
 }
 
@@ -37,9 +41,9 @@ SELECTED = DARK["SELECTED"]
 LINE = DARK["LINE"]
 TEXT = DARK["TEXT"]
 MUTED = DARK["MUTED"]
-LAMP = DARK["LAMP"]
+ACCENT = DARK["ACCENT"]
 FAULT = DARK["FAULT"]
-ON_LAMP = "#1d2226"  # text and knob sitting on amber, in both themes
+ON_ACCENT = "#1d2226"  # text and knob sitting on the accent, in both themes
 
 FONT = "Segoe UI"
 SYMBOLS = "Segoe UI Symbol"

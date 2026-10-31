@@ -1,4 +1,4 @@
-"""Small custom widgets: lamp switch, icon button, flat buttons, choice control, dropdown."""
+"""Small custom widgets: switch, icon button, flat buttons, choice control, dropdown."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ CHEVRON = "▾"
 
 
 class Switch(tk.Canvas):
-    """On/off switch. The track lights up amber and the knob slides across."""
+    """On/off switch. The track turns the accent colour and the knob slides across."""
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class Switch(tk.Canvas):
         self.delete("all")
         pad, w, h = px(2), self._width, self._height
         lit = self._pos > 0.5
-        track = theme.LAMP if lit else theme.LINE
+        track = theme.ACCENT if lit else theme.LINE
         r = h - 2 * pad
         x0, y0, x1, y1 = pad, pad, w - pad, h - pad
         self.create_oval(x0, y0, x0 + r, y1, fill=track, outline=track)
@@ -89,7 +89,7 @@ class Switch(tk.Canvas):
             y0 + px(3),
             left + knob,
             y0 + px(3) + knob,
-            fill=theme.ON_LAMP if lit else theme.MUTED,
+            fill=theme.ON_ACCENT if lit else theme.MUTED,
             outline="",
         )
 
@@ -133,9 +133,9 @@ def flat_button(
     primary: bool = False,
     quiet: bool = False,
 ) -> tk.Button:
-    """Flat button: amber when primary, plain muted text when quiet."""
-    bg = theme.LAMP if primary else theme.PANEL if quiet else theme.RAISED
-    fg = theme.ON_LAMP if primary else theme.MUTED if quiet else theme.TEXT
+    """Flat button: the accent colour when primary, plain muted text when quiet."""
+    bg = theme.ACCENT if primary else theme.PANEL if quiet else theme.RAISED
+    fg = theme.ON_ACCENT if primary else theme.MUTED if quiet else theme.TEXT
     return tk.Button(
         parent,
         text=text,
@@ -144,7 +144,7 @@ def flat_button(
         bg=bg,
         fg=fg,
         activebackground=bg,
-        activeforeground=theme.ON_LAMP if primary else theme.TEXT,
+        activeforeground=theme.ON_ACCENT if primary else theme.TEXT,
         relief="flat",
         bd=0,
         padx=px(14),
@@ -233,7 +233,7 @@ class Dropdown(tk.Frame):
             bg=theme.RAISED,
             highlightthickness=1,
             highlightbackground=theme.LINE,
-            highlightcolor=theme.LAMP,
+            highlightcolor=theme.ACCENT,
             takefocus=True,
             cursor="hand2",
         )
@@ -283,7 +283,7 @@ class Dropdown(tk.Frame):
                 row,
                 text="●" if key == self.value else "",
                 font=(theme.SYMBOLS, 7),
-                fg=theme.LAMP,
+                fg=theme.ACCENT,
                 bg=theme.RAISED,
                 width=2,
             )

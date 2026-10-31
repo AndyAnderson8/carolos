@@ -1,4 +1,4 @@
-"""Tray app: a lamp-switch flyout for the tools, and a small settings window per tool."""
+"""Tray app: a flyout with a switch per tool, and a small settings window per tool."""
 
 from __future__ import annotations
 
@@ -163,7 +163,7 @@ class SettingsDialog(tk.Toplevel):
                 relief="flat",
                 highlightthickness=1,
                 highlightbackground=theme.LINE,
-                highlightcolor=theme.LAMP,
+                highlightcolor=theme.ACCENT,
             )
             entry.pack(fill="x", pady=(px(6), 0), ipady=px(5))
             entry.bind("<Return>", lambda _e: self._save())
@@ -200,7 +200,7 @@ class SettingsDialog(tk.Toplevel):
 
 
 class ToolRow(tk.Frame):
-    """One tool: name and description on the left, gear and lamp switch on the right."""
+    """One tool: name and description on the left, gear and switch on the right."""
 
     def __init__(
         self,
