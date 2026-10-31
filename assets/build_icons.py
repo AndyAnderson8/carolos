@@ -15,9 +15,9 @@ SOURCE = HERE / "pianta_source.png"
 SIZES = [16, 24, 32, 48, 64, 128, 256]
 FACE_PX = 512
 FACE_BOX = (335, 285, 975, 705)  # flower, eye and nose, in source-image pixels
-BUST_BOX = (290, 285, 1045, 1170)  # her whole figure from the flower down: a tall rectangle
+BUST_BOX = (250, 40, 1045, 1170)  # her whole figure, palm to feet: a tall rectangle
 BUST_PX = 1024  # only the top of it is shown at a time, so it is kept sharper
-# Bits of the palm that poke into the top of the crops, in source-image pixels.
+# Bits of the palm that poke into the top of the face crop, in source-image pixels.
 ERASE = [
     [(518, 255), (646, 255), (646, 343), (560, 343), (560, 306), (518, 306)],  # the trunk
     [(290, 255), (390, 255), (390, 308), (290, 308)],  # a yellow frond
@@ -78,10 +78,10 @@ def rounded_tile(source: Image.Image) -> Image.Image:
 
 
 def main() -> None:
-    figure = erase(cut_out(Image.open(SOURCE)), ERASE)
-    for name, box, size in (
-        ("pianta_face.png", FACE_BOX, FACE_PX),
-        ("pianta_bust.png", BUST_BOX, BUST_PX),
+    cutout = cut_out(Image.open(SOURCE))
+    for name, figure, box, size in (
+        ("pianta_face.png", erase(cutout, ERASE), FACE_BOX, FACE_PX),
+        ("pianta_bust.png", cutout, BUST_BOX, BUST_PX),  # keeps the palm
     ):
         crop = figure.crop(box)
         crop.thumbnail((size, size), Image.Resampling.LANCZOS)

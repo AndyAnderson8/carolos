@@ -17,7 +17,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from carol_aio.icon import bust_image, name_image
 
 SS = 3  # drawn this many times larger, then shrunk, so the edges are smooth
-NECK = 0.54  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
+NECK = 0.70  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
 Point = tuple[float, float]
 
 
@@ -100,12 +100,12 @@ def render(
     s = scale
     margin, top, pad, line, radius = (
         s(18),
-        s(44),
+        s(60),
         s(10),
         s(2),
         s(22),
     )  # top: room for her to poke out
-    band, amplitude, wavelength, tail_h = s(72), s(3), s(46), s(16)
+    band, amplitude, wavelength, tail_h = s(112), s(3), s(46), s(16)
     body_w = content_w + 2 * pad
     clear = line + s(
         3
@@ -136,9 +136,9 @@ def render(
 
     # Her head and upper body rise out of the band, over the top edge. The body below the wave
     # is in front of her, so the wave reads as the top of her outfit.
-    figure_h = s(196)
+    figure_h = s(232)
     figure = bust_image(figure_h * SS)
-    figure_x = (x0 + s(4)) * SS
+    figure_x = (x0 + s(6)) * SS
     figure_y = round((y0 + band - NECK * figure_h) * SS)  # where the wave crosses her
     placed = Image.new("RGBA", layer.size, (0, 0, 0, 0))
     placed.alpha_composite(figure, (figure_x, figure_y))
@@ -158,7 +158,7 @@ def render(
     out.alpha_composite(bubble)
 
     # The name sits beside her, on the band.
-    baseline = y0 + s(48)
-    name = name_image(s(26), colors.on_sea)
-    out.alpha_composite(name, (x0 + s(4) + round(figure.width / SS) + s(8), baseline - name.height))
+    baseline = y0 + s(68)
+    name = name_image(s(28), colors.on_sea)
+    out.alpha_composite(name, (x0 + s(6) + round(figure.width / SS) + s(6), baseline - name.height))
     return Bubble(out, x0 + pad, y0 + band + amplitude + clear, margin, y0)
