@@ -28,7 +28,22 @@ class ConfigError(Exception):
     pass
 
 
+ENV_VAR = "CAROL_AIO_CONFIG"
+
+
+_override = None
+
+
+def set_config_path(path):
+    global _override
+    _override = path
+
+
 def default_config_path():
+    """``--config`` (via ``set_config_path``) > $CAROL_AIO_CONFIG > next to the exe."""
+    override = _override or os.environ.get(ENV_VAR)
+    if override:
+        return Path(override).expanduser()
     if getattr(sys, "frozen", False):
         base = Path(sys.executable).parent
     else:

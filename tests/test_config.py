@@ -2,6 +2,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import os
+from unittest import mock
+
+from carol_aio import config as cfg
 from carol_aio.config import Config, ConfigError
 from carol_aio.tool import Field, Tool
 
@@ -51,6 +55,17 @@ class ConfigTest(unittest.TestCase):
         c.set_tool("t", enabled=False)
         c.save()
         self.assertIn("other", self.path.read_text())
+
+    def test_path_precedence(self):
+        with mock.patch.dict(os.environ, {cfg.ENV_VAR: "/env/c.yaml"}):
+            self.assertEqual(str(cfg.default_config_path()), "/env/c.yaml")
+            cfg.set_config_path("/cli/c.yaml")
+            try:
+                self.assertEqual(str(cfg.default_config_path()), "/cli/c.yaml")
+            finally:
+                cfg.set_config_path(None)
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(cfg.default_config_path().name, "config.yaml")
 
     def test_configure_validation(self):
         t = T()

@@ -50,4 +50,7 @@ tools:
       sustain_ratio: 0.8   # fraction of samples that must be audible
 ```
 
+To use a different location, run `CarolAIO.exe --config C:\path\to\config.yaml`
+(e.g. in a shortcut) or set the `CAROL_AIO_CONFIG` environment variable.
+
 Tools marked `enabled: true` start automatically when the app opens.
