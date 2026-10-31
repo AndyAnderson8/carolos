@@ -12,7 +12,12 @@ from carol_aio.icon import tray_icon, tray_pixels
 class Tray:
     """Wraps pystray. Callbacks run on pystray's thread, so keep them to queue puts."""
 
-    def __init__(self, on_open: Callable[[], None], on_quit: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        on_open: Callable[[], None],
+        on_check: Callable[[], None],
+        on_quit: Callable[[], None],
+    ) -> None:
         self._counts = (0, 0)
         self._size = tray_pixels()
         self._icon = pystray.Icon(
@@ -21,6 +26,7 @@ class Tray:
             "Carol AIO",
             menu=pystray.Menu(
                 pystray.MenuItem("Open Carol AIO", lambda: on_open(), default=True),
+                pystray.MenuItem("Check for updates", lambda: on_check()),
                 pystray.MenuItem("Quit", lambda: on_quit()),
             ),
         )

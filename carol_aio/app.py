@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import queue
 import time
 import tkinter as tk
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
-from carol_aio import __version__, theme
+from carol_aio import __version__, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
+from carol_aio.flows import Updater
 from carol_aio.theme import FONT, px
 from carol_aio.tool import Field, Tool
 from carol_aio.tools import create_tools
@@ -19,6 +22,7 @@ from carol_aio.widgets import Dropdown, GearButton, Segmented, Switch, flat_butt
 
 CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
+AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
 FLYOUT_WIDTH = 340
 EDGE_GAP = 12
@@ -247,6 +251,7 @@ class Flyout(tk.Toplevel):
         tools: list[Tool],
         on_toggle: Callable[[Tool, bool], None],
         on_gear: Callable[[Tool], None],
+        on_check: Callable[[], None],
     ) -> None:
         super().__init__(parent, bg=theme.LINE)
         self.overrideredirect(True)
@@ -284,6 +289,11 @@ class Flyout(tk.Toplevel):
             row = ToolRow(panel, tool, on_toggle, on_gear)
             row.pack(fill="x")
             self.rows[tool.key] = row
+
+        footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(4))
+        footer.pack(side="bottom", fill="x")  # packed first so it stays at the very bottom
+        tk.Frame(panel, bg=theme.LINE, height=1).pack(side="bottom", fill="x")
+        flat_button(footer, "Check for updates", on_check, quiet=True).pack(side="left")
 
         self.status_label = tk.Label(
             panel,
@@ -352,20 +362,33 @@ class App(tk.Tk):
         self.withdraw()  # no window of its own; the tray icon is the way in
         self.tools = create_tools() if tools is None else tools
         self.config_store = config or Config()
-        self.commands: queue.Queue[str] = queue.Queue()
+        self.inbox: queue.Queue[Callable[[], None]] = queue.Queue()
+        self.pending_setup: Path | None = None  # a downloaded installer to run once we exit
         self.dialog: SettingsDialog | None = None
+        self.updater = Updater(self, self.post, self._update_with)
         self.flyout = self._build_flyout()
-        self.tray = Tray(lambda: self.commands.put("toggle"), lambda: self.commands.put("quit"))
+        self.tray = Tray(
+            lambda: self.post(self.toggle_flyout),
+            lambda: self.post(self.check_for_updates),
+            lambda: self.post(self.close),
+        )
 
         self._load_config(startup=True)
         self.tray.start()
         self._refresh_tray()
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.after(CONFIG_POLL_MS, self._poll_config)
-        self.after(QUEUE_POLL_MS, self._poll_commands)
+        self.after(QUEUE_POLL_MS, self._poll_inbox)
+        self.after(AUTO_CHECK_DELAY_MS, lambda: self.updater.check(manual=False))
+
+    def post(self, action: Callable[[], None]) -> None:
+        """Run ``action`` on Tk's thread; safe to call from any thread."""
+        self.inbox.put(action)
 
     def _build_flyout(self) -> Flyout:
-        return Flyout(self, self.tools, self.toggle_tool, self.open_settings)
+        return Flyout(
+            self, self.tools, self.toggle_tool, self.open_settings, self.check_for_updates
+        )
 
     def _follow_system_theme(self) -> None:
         """Rebuild the panel in the new colours if Windows switched light/dark."""
@@ -390,20 +413,30 @@ class App(tk.Tk):
     def _refresh_tray(self) -> None:
         self.tray.update(sum(t.running for t in self.tools), len(self.tools))
 
-    def _poll_commands(self) -> None:
-        """Tray callbacks arrive on another thread; handle them here on Tk's."""
+    def _poll_inbox(self) -> None:
+        """Tray and background-thread callbacks arrive on other threads; run them here."""
         try:
             while True:
-                command = self.commands.get_nowait()
-                if command == "quit":
-                    self.close()
-                    return
-                if not self.flyout.visible:
-                    self._follow_system_theme()
-                self.flyout.toggle()
+                self.inbox.get_nowait()()
         except queue.Empty:
             pass
-        self.after(QUEUE_POLL_MS, self._poll_commands)
+        if self.winfo_exists():
+            self.after(QUEUE_POLL_MS, self._poll_inbox)
+
+    def toggle_flyout(self) -> None:
+        if not self.flyout.visible:
+            self._follow_system_theme()
+        self.flyout.toggle()
+
+    def check_for_updates(self) -> None:
+        self.flyout.hide()
+        self._follow_system_theme()
+        self.updater.check(manual=True)
+
+    def _update_with(self, setup: Path) -> None:
+        """An update's installer is downloaded: shut down, and main() runs it."""
+        self.pending_setup = setup
+        self.close()
 
     # --- config <-> tools -------------------------------------------------
 
@@ -482,4 +515,17 @@ def main(argv: list[str] | None = None) -> None:
         help=f"config file to use (or set ${ENV_VAR}); default: next to the app",
     )
     set_config_path(parser.parse_args(argv).config)
-    App().mainloop()
+
+    if not single.acquire():
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            "Carol AIO is already running. Look for it in the tray (the ^ arrow).",
+            "Carol AIO",
+            0x40,
+        )
+        return
+
+    app = App()
+    app.mainloop()
+    if app.pending_setup is not None:
+        install.run_setup(app.pending_setup)
