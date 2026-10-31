@@ -1,0 +1,1 @@
+# Runtime dependencies (tkinter ships with Python on Windows)
