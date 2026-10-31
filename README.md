@@ -11,14 +11,57 @@ Right-click the icon to quit.
 python main.py
 ```
 
-## Build the exe
+## Build
 
 ```
 pip install -r requirements-build.txt
-python build.py        # -> dist/CarolAIO.exe
+winget install JRSoftware.InnoSetup   # once, to build the installer
+python build.py                       # -> dist/CarolAIO/ and dist/CarolAIO-Setup-<version>.exe
 ```
 
-Pushes to `main`/`dev` also build the exe in GitHub Actions (artifact `CarolAIO`).
+`build.py` runs PyInstaller to produce the app as a folder, then Inno Setup
+(`installer/carol_aio.iss`) to wrap it into the installer. Without Inno Setup it still builds
+`dist/CarolAIO/` and warns. Pushes to `main`/`dev` also build the installer in GitHub Actions
+(artifact `CarolAIO-Setup`).
+
+While testing, skip the installer: `python build.py --deploy` rebuilds just the app folder
+(incrementally), stops the running app, copies the new files over your installed copy, keeping its
+`config.yaml` and uninstaller, and starts it again. `python main.py` runs straight from source
+with no build at all (it uses the repo's own `config.yaml`; quit the installed copy first, since
+only one runs at a time).
+
+## Installing and updating
+
+Download `CarolAIO-Setup-<version>.exe` from the Releases page and run it. It installs for your
+account (no admin rights) into `%LOCALAPPDATA%\Programs\CarolAIO` by default, and the setup
+wizard lets you pick another folder and choose whether to add a desktop and a Start menu
+shortcut. The app appears under Settings > Apps, and uninstalling asks whether to keep your
+settings. `config.yaml` lives in the install folder and is never touched by upgrades; an existing
+`config.yaml` next to the setup file is copied in on a first install. Running a newer setup over
+an installed copy upgrades it in place (it stops the running app first).
+
+Updates come from the GitHub Releases page, so the repo has to be public. Carol AIO checks a few
+seconds after it starts and, if there is a newer release, shows an **Update now** dialog. That
+downloads the new setup (checking its size and SHA-256), quits the app, and runs the setup
+silently, which upgrades the app and starts it again. **Check for updates** in the tray menu or
+the panel footer runs the same check on demand and says so when you are up to date. Only
+published releases count (pre-releases from untagged commits do not). A copy that wasn't
+installed with the setup program, including a source run, never updates itself.
+
+Only one copy runs at a time.
+
+## Releases
+
+Every push to `main` publishes a GitHub release with `CarolAIO-Setup-<version>.exe` attached.
+The version shown in the panel header and in the release name is:
+
+- the git tag on the commit, if it has one (tag the merge: `git tag v1.2.0 && git push --tags`);
+- otherwise the short commit hash, published as a pre-release;
+- `dev` when run from source.
+
+Pushing a `v*` tag publishes that release even if it comes after the merge, so tagging
+a merge that is already on `main` gives you both a pre-release for the commit and the
+tagged release.
 
 ## Adding a tool
 
