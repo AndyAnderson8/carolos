@@ -33,6 +33,9 @@ class ConfigError(Exception):
 
 ENV_VAR = "CAROL_AIO_CONFIG"
 
+# Tools that were renamed: old key -> new key. Saved settings move over on load.
+RENAMED_TOOLS = {"edge_audio_pause": "call_pause"}
+
 
 _override: str | None = None
 
@@ -85,6 +88,9 @@ class Config:
         if not isinstance(raw, dict) or not isinstance(raw.get("tools", {}), (dict, type(None))):
             raise ConfigError(f"{self.path.name}: expected a 'tools:' mapping at the top level")
         self.data = {**raw, "tools": raw.get("tools") or {}}
+        for old, new in RENAMED_TOOLS.items():
+            if old in self.data["tools"] and new not in self.data["tools"]:
+                self.data["tools"][new] = self.data["tools"].pop(old)
 
     def tool_section(self, key: str) -> dict[str, Any]:
         section = self.data["tools"].get(key)

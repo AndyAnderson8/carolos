@@ -10,6 +10,26 @@ from carol_aio.config import Config, ConfigError
 from carol_aio.tool import Field, Tool
 
 
+class RenamedToolTest(unittest.TestCase):
+    def test_old_key_settings_move_to_new_key(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "config.yaml"
+            path.write_text(
+                "tools:\n"
+                "  edge_audio_pause:\n"
+                "    enabled: true\n"
+                "    settings:\n"
+                "      process_name: a.exe\n",
+                encoding="utf-8",
+            )
+            config = Config(path)
+            config.load()
+            section = config.tool_section("call_pause")
+            self.assertTrue(section["enabled"])
+            self.assertEqual(section["settings"]["process_name"], "a.exe")
+            self.assertNotIn("edge_audio_pause", config.data["tools"])
+
+
 class T(Tool):
     key = "t"
     name = "T"

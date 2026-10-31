@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.tools.edge_audio_pause import is_sustained
+from carol_aio.tools.call_pause import is_sustained
 
 
 class FakeClock:

@@ -19,9 +19,17 @@ class Field:
     min: float | None = None
     max: float | None = None
     help: str = ""
+    advanced: bool = False  # editable in config.yaml only, not shown in the settings popup
+    choices: tuple[tuple[str, str, str], ...] = ()  # (value, label, hint) shown as a choice control
+    picker: bool = False  # pick from the tool's ``options`` instead of typing
 
     def coerce(self, value: Any) -> Any:
         """Return ``value`` as this field's type or raise ValueError."""
+        if self.choices:
+            text = str(value).strip()
+            if text not in [c[0] for c in self.choices]:
+                raise ValueError(f"must be one of: {', '.join(c[0] for c in self.choices)}")
+            return text
         if self.type is bool:
             if isinstance(value, bool):
                 return value
@@ -94,6 +102,10 @@ class Tool:
             if self._thread is not None and self._thread is not threading.current_thread():
                 self._thread.join(timeout=2)
             self._thread = None
+
+    def options(self, key: str) -> list[tuple[str, str]]:
+        """(value, label) pairs for a ``picker`` field; may change while the app runs."""
+        return []
 
     def defaults(self) -> dict[str, Any]:
         return {f.key: f.default for f in self.fields}

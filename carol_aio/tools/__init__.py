@@ -8,9 +8,9 @@ this package with a ``Tool`` subclass and append the class to ``TOOLS``.
 from __future__ import annotations
 
 from carol_aio.tool import Tool
-from carol_aio.tools.edge_audio_pause import EdgeAudioPause
+from carol_aio.tools.call_pause import CallPause
 
-TOOLS: list[type[Tool]] = [EdgeAudioPause]
+TOOLS: list[type[Tool]] = [CallPause]
 
 
 def create_tools() -> list[Tool]:
