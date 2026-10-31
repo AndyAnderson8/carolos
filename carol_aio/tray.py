@@ -42,4 +42,4 @@ class Tray:
         if (running, total) != self._counts:
             self._counts = (running, total)
             self._icon.icon = tray_icon(running, total, self._size)
-        self._icon.title = f"Carol AIO: {running} of {total} on"
+        self._icon.title = f"Carol AIO: {running} of {total} tools on"

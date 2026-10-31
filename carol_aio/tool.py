@@ -1,4 +1,4 @@
-"""Base class every mini-tool derives from."""
+"""Base class every tool derives from."""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ class Field:
 
 
 class Tool:
-    """A mini-tool the AIO app can switch on and off.
+    """A tool the app can switch on and off.
 
     Subclasses set ``key``, ``name`` and ``description`` and implement
     ``on_start`` / ``on_stop``. ``on_start`` must return quickly; spawn a

@@ -1,6 +1,6 @@
 # Carol AIO
 
-A small all-in-one Windows app that hosts several mini Python tools. It lives in
+A small all-in-one Windows app that hosts several tools. It lives in
 the system tray: click the icon to open a panel with an on/off switch for each
 tool, and click a tool's gear (⚙) to edit its settings in a small popup window.
 Right-click the icon to quit.
@@ -73,7 +73,7 @@ tagged release.
 
 | Tool | What it does |
 | --- | --- |
-| Pause media on calls | When Edge makes a sound (a call announcing itself), pauses everything that is playing: Spotify, YouTube in other browsers, etc. Only apps that are playing get paused, and Edge itself is left alone so the call isn't touched. Windows only. |
+| Pause media for calls | When Edge makes a sound (a call announcing itself), pauses everything that is playing: Spotify, YouTube in other browsers, etc. Only apps that are playing get paused, and Edge itself is left alone so the call isn't touched. Windows only. |
 
 ## Configuration
 

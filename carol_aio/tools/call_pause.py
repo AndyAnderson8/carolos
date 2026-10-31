@@ -101,10 +101,8 @@ class EdgePeakReader:
 
 class CallPause(Tool):
     key = "call_pause"
-    name = "Pause media on calls"
-    description = (
-        "Stops Spotify, YouTube and anything else playing when a call announces itself in Edge."
-    )
+    name = "Pause media for calls"
+    description = "Stops Spotify, YouTube and anything else playing when a call starts."
     fields = (
         Field(
             "process_name",

@@ -14,6 +14,7 @@ from typing import Any
 from carol_aio import __version__, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
+from carol_aio.icon import lockup_photo
 from carol_aio.theme import FONT, px
 from carol_aio.tool import Field, Tool
 from carol_aio.tools import create_tools
@@ -266,13 +267,18 @@ class Flyout(tk.Toplevel):
         panel.pack(fill="both", expand=True, padx=1, pady=1)
         header = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(12))
         header.pack(fill="x")
-        tk.Label(header, text="Carol AIO", font=(FONT, 10), fg=theme.TEXT, bg=theme.PANEL).pack(
-            side="left"
-        )
-        tk.Label(
-            header, text=f"v{__version__}", font=(FONT, 9), fg=theme.MUTED, bg=theme.PANEL
-        ).pack(side="right")
+        self._lockup = lockup_photo(px(26), theme.TEXT)  # kept on self so Tk doesn't drop it
+        tk.Label(header, image=self._lockup, bg=theme.PANEL).pack(side="left")
         tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
+        tk.Label(
+            panel,
+            text="Tools",
+            font=(FONT, 10, "bold"),
+            fg=theme.MUTED,
+            bg=theme.PANEL,
+            anchor="w",
+            padx=px(18),
+        ).pack(fill="x", pady=(px(10), 0))
 
         if not tools:
             tk.Label(
@@ -294,6 +300,9 @@ class Flyout(tk.Toplevel):
         footer.pack(side="bottom", fill="x")  # packed first so it stays at the very bottom
         tk.Frame(panel, bg=theme.LINE, height=1).pack(side="bottom", fill="x")
         flat_button(footer, "Check for updates", on_check, quiet=True).pack(side="left")
+        tk.Label(footer, text=__version__, font=(FONT, 9), fg=theme.MUTED, bg=theme.PANEL).pack(
+            side="right", padx=(0, px(6))
+        )
 
         self.status_label = tk.Label(
             panel,

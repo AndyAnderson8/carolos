@@ -1,4 +1,4 @@
-"""Carol AIO: a small all-in-one host for mini Python tools."""
+"""Carol AIO: a small all-in-one host for tools."""
 
 from importlib import import_module
 
