@@ -24,6 +24,12 @@ python build.py                       # -> dist/CarolAIO/ and dist/CarolAIO-Setu
 `dist/CarolAIO/` and warns. Pushes to `main`/`dev` also build the installer in GitHub Actions
 (artifact `CarolAIO-Setup`).
 
+While testing, skip the installer: `python build.py --deploy` rebuilds just the app folder
+(incrementally), stops the running app, copies the new files over your installed copy, keeping its
+`config.yaml` and uninstaller, and starts it again. `python main.py` runs straight from source
+with no build at all (it uses the repo's own `config.yaml`; quit the installed copy first, since
+only one runs at a time).
+
 ## Installing and updating
 
 Download `CarolAIO-Setup-<version>.exe` from the Releases page and run it. It installs for your
