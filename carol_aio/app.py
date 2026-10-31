@@ -138,7 +138,7 @@ class App(tk.Tk):
                 problems += self._set_running(tool, section["enabled"])
             self.rows[tool.key].sync()
         self.status.set("; ".join(problems))
-        if startup and self.config_store.changed_on_disk():
+        if startup and not self.config_store.path.exists():
             self._write_config()  # first run: write defaults so there is a file to edit
 
     def _set_running(self, tool, enabled):
