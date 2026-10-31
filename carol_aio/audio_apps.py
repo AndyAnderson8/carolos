@@ -21,13 +21,16 @@ KNOWN = {
 }
 
 
-def friendly_name(exe: str) -> str:
-    """ "msedge.exe" -> "Microsoft Edge"; unknown programs get a tidied-up file name."""
-    known = KNOWN.get(exe.lower())
+def friendly_name(app: str) -> str:
+    """ "msedge.exe" or "MSEdge" -> "Microsoft Edge"; other programs get a tidied-up name."""
+    key = app.lower()
+    known = KNOWN.get(key) or KNOWN.get(key + ".exe")
     if known:
         return known
-    stem = exe[:-4] if exe.lower().endswith(".exe") else exe
-    return stem.replace("_", " ").replace("-", " ").title()
+    name = app.rsplit("!", 1)[-1]  # Store apps: "Publisher.App_id!Publisher.App"
+    name = name[:-4] if name.lower().endswith(".exe") else name.rsplit(".", 1)[-1]
+    name = name.replace("_", " ").replace("-", " ")
+    return name if any(c.isupper() for c in name) else name.title()
 
 
 def running_audio_apps() -> list[str]:

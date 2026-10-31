@@ -46,7 +46,6 @@ tools:
     enabled: true
     settings:
       process_name: msedge.exe  # "App that plays the call sound" (pick it in the popup)
-      reaction: balanced        # "How quickly to pause": fast, balanced or careful
       threshold: 0.001          # peak level (0-1) counted as audible (config.yaml only)
 ```
 

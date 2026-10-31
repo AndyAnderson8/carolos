@@ -1,12 +1,11 @@
-"""Pause media when a call announces itself with sound in Microsoft Edge (Windows).
+"""Pause media the moment a call announces itself with sound in Microsoft Edge (Windows).
 
-Watches Edge's audio sessions through the Windows Core Audio peak meter. When
-Edge goes from silent to audible, the tool samples the meter for a short
-window; if enough of it is audible it asks Windows' media session manager to
-pause every app that is currently playing (Spotify, YouTube in another
-browser, ...). Only sessions that are playing are paused, so nothing is ever
-started by mistake, and Edge's own session is skipped so a call is left alone.
-The tool then waits for Edge to go quiet before re-arming.
+Watches Edge's audio sessions through the Windows Core Audio peak meter. As soon as
+Edge makes any sound it asks Windows' media session manager to pause every app that
+is currently playing (Spotify, YouTube in another browser, ...). Only sessions that
+are playing are paused, so nothing is ever started by mistake, and Edge's own session
+is skipped so a call is left alone. It then waits for Edge to go quiet before it can
+pause again.
 """
 
 from __future__ import annotations
@@ -14,8 +13,6 @@ from __future__ import annotations
 import asyncio
 import sys
 import threading
-import time
-from collections.abc import Callable
 from typing import Any
 
 from carol_aio.audio_apps import friendly_name, running_audio_apps
@@ -24,37 +21,21 @@ from carol_aio.tool import Field, Tool
 PROCESS_NAME = "msedge.exe"
 THRESHOLD = 0.001  # Edge reads exactly 0 when silent, so any signal counts
 IDLE_POLL = 0.05  # seconds between checks while waiting for audio
-BURST_WINDOW = 0.1
-BURST_POLL = 0.01
-SUSTAIN_RATIO = 0.4
-# reaction -> (seconds to listen, share of that window that must contain sound)
-REACTIONS = {
-    "fast": (0.05, 0.2),
-    "balanced": (BURST_WINDOW, SUSTAIN_RATIO),
-    "careful": (0.3, 0.7),
-}
 
 
-def is_sustained(
-    read_peak: Callable[[], float],
-    threshold: float = THRESHOLD,
-    window: float = BURST_WINDOW,
-    interval: float = BURST_POLL,
-    ratio: float = SUSTAIN_RATIO,
-    sleep: Callable[[float], None] = time.sleep,
-    clock: Callable[[], float] = time.monotonic,
-) -> bool:
-    """Poll ``read_peak`` for ``window`` seconds; True if mostly above ``threshold``."""
-    loud = total = 0
-    end = clock() + window
-    while True:
-        total += 1
-        if read_peak() >= threshold:
-            loud += 1
-        if clock() >= end:
-            break
-        sleep(interval)
-    return loud / total >= ratio
+class SoundTrigger:
+    """Fires once when sound starts, then not again until it has gone quiet."""
+
+    def __init__(self) -> None:
+        self.armed = True
+
+    def update(self, audible: bool) -> bool:
+        """Feed the latest reading; True means "sound just started: pause now"."""
+        if not audible:
+            self.armed = True
+            return False
+        fire, self.armed = self.armed, False
+        return fire
 
 
 async def _pause_playing(skip: str) -> list[str]:
@@ -79,12 +60,15 @@ async def _pause_playing(skip: str) -> list[str]:
 def pause_playing_media(skip: str = "") -> list[str]:
     """Pause every playing media session whose app id doesn't contain ``skip``.
 
+    Pausing is all this ever does: it never plays, resumes or toggles anything.
+
     Returns the app ids that were paused. Runs on its own thread because the
     WinRT calls need a different COM apartment than the audio meter's thread.
     """
     result: list[str] = []
     worker = threading.Thread(
-        target=lambda: result.extend(asyncio.run(_pause_playing(skip.lower()))), daemon=True
+        target=lambda: result.extend(asyncio.run(_pause_playing(skip.lower()))),
+        daemon=True,
     )
     worker.start()
     worker.join(timeout=5)
@@ -131,17 +115,6 @@ class CallPause(Tool):
             help="The app that says the brand name before a call. Apps show up here once they have made sound.",
         ),
         Field(
-            "reaction",
-            "How quickly to pause",
-            str,
-            "balanced",
-            choices=(
-                ("fast", "Fast", "Pauses on the slightest sound, including short alerts."),
-                ("balanced", "Balanced", "Pauses on a spoken word or a short chime."),
-                ("careful", "Careful", "Ignores brief dings and waits for steadier sound."),
-            ),
-        ),
-        Field(
             "threshold",
             "Volume threshold",
             float,
@@ -170,24 +143,12 @@ class CallPause(Tool):
         comtypes.CoInitialize()
         try:
             read_peak = EdgePeakReader()
-            armed = True
+            trigger = SoundTrigger()
             while not stop.is_set():
                 cfg = self.settings
                 read_peak.process_name = cfg["process_name"].lower()
-                audible = read_peak() >= cfg["threshold"]
-                if not audible:
-                    armed = True
-                elif armed:
-                    window, ratio = REACTIONS[cfg["reaction"]]
-                    if is_sustained(
-                        read_peak,
-                        cfg["threshold"],
-                        window,
-                        BURST_POLL,
-                        ratio,
-                    ):
-                        pause_playing_media(cfg["process_name"].lower().removesuffix(".exe"))
-                        armed = False  # wait for silence before re-arming
+                if trigger.update(read_peak() >= cfg["threshold"]):
+                    pause_playing_media(cfg["process_name"].lower().removesuffix(".exe"))
                 stop.wait(IDLE_POLL)
         finally:
             comtypes.CoUninitialize()
