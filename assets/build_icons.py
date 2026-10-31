@@ -15,11 +15,12 @@ SOURCE = HERE / "pianta_source.png"
 SIZES = [16, 24, 32, 48, 64, 128, 256]
 FACE_PX = 512
 FACE_BOX = (335, 285, 975, 705)  # flower, eye and nose, in source-image pixels
-BUST_BOX = (320, 255, 990, 980)  # head, upper body and the start of the skirt
-# Bits of the palm that poke into the top of the bust crop, as fractions of the crop (x, y).
-BUST_ERASE = [
-    [(0.296, 0.0), (0.486, 0.0), (0.486, 0.113), (0.355, 0.113), (0.355, 0.07), (0.296, 0.07)],
-    [(0.0, 0.0), (0.127, 0.0), (0.127, 0.049), (0.0, 0.049)],
+BUST_BOX = (290, 285, 1045, 1170)  # her whole figure from the flower down: a tall rectangle
+BUST_PX = 1024  # only the top of it is shown at a time, so it is kept sharper
+# Bits of the palm that poke into the top of the crops, in source-image pixels.
+ERASE = [
+    [(518, 255), (646, 255), (646, 343), (560, 343), (560, 306), (518, 306)],  # the trunk
+    [(290, 255), (390, 255), (390, 308), (290, 308)],  # a yellow frond
 ]
 TILE_PX = 1024  # drawn large, then shrunk so the rounded corners are smooth
 TILE_RADIUS = 0.22  # corner radius as a fraction of the tile
@@ -42,15 +43,21 @@ def cut_out(source: Image.Image) -> Image.Image:
     return out
 
 
-def erase(image: Image.Image, shapes: list[list[tuple[float, float]]]) -> Image.Image:
-    """Make the given regions (fractions of the image) transparent, with smooth edges."""
+def erase(image: Image.Image, shapes: list[list[tuple[int, int]]]) -> Image.Image:
+    """Make the given regions (in this image's pixels) transparent, with smooth edges."""
     scale = 4
-    mask = Image.new("L", (image.width * scale, image.height * scale), 255)
-    for shape in shapes:
-        ImageDraw.Draw(mask).polygon([(x * mask.width, y * mask.height) for x, y in shape], fill=0)
-    mask = mask.resize(image.size, Image.Resampling.LANCZOS)
     out = image.copy()
-    out.putalpha(ImageChops.multiply(out.getchannel("A"), mask))
+    for shape in shapes:
+        left, top = min(x for x, _ in shape), min(y for _, y in shape)
+        right, bottom = max(x for x, _ in shape), max(y for _, y in shape)
+        mask = Image.new("L", ((right - left) * scale, (bottom - top) * scale), 255)
+        ImageDraw.Draw(mask).polygon(
+            [((x - left) * scale, (y - top) * scale) for x, y in shape], fill=0
+        )
+        mask = mask.resize((right - left, bottom - top), Image.Resampling.LANCZOS)
+        patch = out.crop((left, top, right, bottom))
+        patch.putalpha(ImageChops.multiply(patch.getchannel("A"), mask))
+        out.paste(patch, (left, top))
     return out
 
 
@@ -71,12 +78,13 @@ def rounded_tile(source: Image.Image) -> Image.Image:
 
 
 def main() -> None:
-    figure = cut_out(Image.open(SOURCE))
-    for name, box in (("pianta_face.png", FACE_BOX), ("pianta_bust.png", BUST_BOX)):
+    figure = erase(cut_out(Image.open(SOURCE)), ERASE)
+    for name, box, size in (
+        ("pianta_face.png", FACE_BOX, FACE_PX),
+        ("pianta_bust.png", BUST_BOX, BUST_PX),
+    ):
         crop = figure.crop(box)
-        crop.thumbnail((FACE_PX, FACE_PX), Image.Resampling.LANCZOS)
-        if name == "pianta_bust.png":
-            crop = erase(crop, BUST_ERASE)
+        crop.thumbnail((size, size), Image.Resampling.LANCZOS)
         crop.save(HERE.parent / "carol_aio" / "assets" / name, optimize=True)
 
     rounded_tile(Image.open(SOURCE)).save(HERE / "carol_aio.ico", sizes=[(s, s) for s in SIZES])

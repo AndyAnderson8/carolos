@@ -24,9 +24,9 @@ class BustImageTest(unittest.TestCase):
     def test_the_bust_is_the_requested_height(self) -> None:
         self.assertEqual(bust_image(104).height, 104)
 
-    def test_the_bust_is_taller_than_the_face_crop_not_wider(self) -> None:
+    def test_the_bust_is_a_tall_rectangle(self) -> None:
         bust = bust_image(104)
-        self.assertLess(bust.width, bust.height * 1.05)  # roughly as tall as wide, not a wide strip
+        self.assertLess(bust.width, bust.height * 0.9)
 
 
 if __name__ == "__main__":

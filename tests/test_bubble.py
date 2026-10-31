@@ -31,7 +31,7 @@ class BubbleTest(unittest.TestCase):
 
     def test_the_header_band_is_sea_coloured(self) -> None:
         art = render(300, 200, COLORS)
-        pixel = art.image.getpixel((art.image.width - art.margin - 24, art.margin + 14))
+        pixel = art.image.getpixel((art.image.width - art.margin - 24, art.body_y + 14))
         assert isinstance(pixel, tuple)
         self.assertEqual(pixel[:3], (0x1D, 0x93, 0xB3))
 

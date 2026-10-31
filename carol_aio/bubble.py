@@ -17,7 +17,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from carol_aio.icon import bust_image, name_image
 
 SS = 3  # drawn this many times larger, then shrunk, so the edges are smooth
-NECK = 0.60  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
+NECK = 0.54  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
 Point = tuple[float, float]
 
 
@@ -35,7 +35,8 @@ class Bubble:
     image: Image.Image
     content_x: int  # where the controls' window goes inside the image
     content_y: int
-    margin: int  # transparent space round the bubble (for the shadow and the peeking face)
+    margin: int  # transparent space beside and below the bubble (for the shadow)
+    body_y: int  # where the bubble's own top edge is; she pokes up above it
 
 
 def _bezier(p0: Point, p1: Point, p2: Point, steps: int = 14) -> list[Point]:
@@ -97,7 +98,13 @@ def render(
     ``scale`` turns design pixels into real ones (display scaling).
     """
     s = scale
-    margin, pad, line, radius = s(18), s(10), s(2), s(22)
+    margin, top, pad, line, radius = (
+        s(18),
+        s(44),
+        s(10),
+        s(2),
+        s(22),
+    )  # top: room for her to poke out
     band, amplitude, wavelength, tail_h = s(72), s(3), s(46), s(16)
     body_w = content_w + 2 * pad
     clear = line + s(
@@ -105,8 +112,8 @@ def render(
     )  # sand between the wave and the controls, so the shrinking can't blur into them
     body_h = band + amplitude + clear + content_h + pad
     width = body_w + 2 * margin
-    height = margin + body_h + (tail_h if tail else 0) + margin
-    x0, y0, x1, y1 = margin, margin, margin + body_w, margin + body_h
+    height = top + body_h + (tail_h if tail else 0) + margin
+    x0, y0, x1, y1 = margin, top, margin + body_w, top + body_h
     tail_geometry = (x1 - s(82), x1 - s(46), x1 - s(50), y1 + tail_h) if tail else None
     path = _outline(x0, y0, x1, y1, radius, tail_geometry)
 
@@ -129,9 +136,9 @@ def render(
 
     # Her head and upper body rise out of the band, over the top edge. The body below the wave
     # is in front of her, so the wave reads as the top of her outfit.
-    figure_h = s(134)
+    figure_h = s(196)
     figure = bust_image(figure_h * SS)
-    figure_x = (x0 + s(8)) * SS
+    figure_x = (x0 + s(4)) * SS
     figure_y = round((y0 + band - NECK * figure_h) * SS)  # where the wave crosses her
     placed = Image.new("RGBA", layer.size, (0, 0, 0, 0))
     placed.alpha_composite(figure, (figure_x, figure_y))
@@ -152,6 +159,6 @@ def render(
 
     # The name sits beside her, on the band.
     baseline = y0 + s(48)
-    name = name_image(s(28), colors.on_sea)
-    out.alpha_composite(name, (x0 + s(8) + round(figure.width / SS) + s(8), baseline - name.height))
-    return Bubble(out, x0 + pad, y0 + band + amplitude + clear, margin)
+    name = name_image(s(26), colors.on_sea)
+    out.alpha_composite(name, (x0 + s(4) + round(figure.width / SS) + s(8), baseline - name.height))
+    return Bubble(out, x0 + pad, y0 + band + amplitude + clear, margin, y0)
