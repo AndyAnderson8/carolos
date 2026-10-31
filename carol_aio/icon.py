@@ -1,0 +1,71 @@
+"""Tray icon: the app artwork over a "running/total" count."""
+
+from __future__ import annotations
+
+import ctypes
+import sys
+from functools import cache
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
+
+ART = Path(__file__).with_name("assets") / "pianta_face.png"
+LAMP = "#f2b544"
+PANEL = "#1d2226"
+
+
+@cache
+def _face() -> Image.Image:
+    return Image.open(ART).convert("RGBA")
+
+
+def tray_pixels() -> int:
+    """Size Windows wants for notification-area icons (scales with display DPI)."""
+    if sys.platform == "win32":
+        try:
+            return int(ctypes.windll.user32.GetSystemMetrics(49))  # SM_CXSMICON
+        except (AttributeError, OSError):
+            pass
+    return 16
+
+
+def _font(px: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for name in ("segoeuib.ttf", "arialbd.ttf"):
+        try:
+            return ImageFont.truetype(name, px)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def tray_icon(running: int, total: int, size: int) -> Image.Image:
+    """A close-up of the face over a "running/total" count; grey when nothing is running."""
+    art = _face()
+    face_h = max(1, round(size * art.height / art.width))
+    art = art.resize((size, face_h), Image.Resampling.LANCZOS)
+    if running == 0:
+        grey = art.convert("LA").convert("RGBA")
+        grey.putalpha(art.getchannel("A").point(lambda a: int(a * 0.7)))
+        art = grey
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    canvas.alpha_composite(art, (0, 0))
+
+    scale = 4
+    big = Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(big)
+    text = f"{running}/{total}"
+    font = _font(round(size * scale * 0.36))
+    stroke = max(scale, round(size * scale / 16))
+    box = draw.textbbox((0, 0), text, font=font, stroke_width=stroke)
+    x = (size * scale - (box[2] - box[0])) / 2 - box[0]
+    y = size * scale - (box[3] - box[1]) - box[1]
+    draw.text(
+        (x, y),
+        text,
+        font=font,
+        fill=LAMP if running else "#ffffff",
+        stroke_width=stroke,
+        stroke_fill=PANEL,
+    )
+    canvas.alpha_composite(big.resize((size, size), Image.Resampling.LANCZOS))
+    return canvas
