@@ -9,8 +9,9 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from carol_aio.theme import LOGO_YELLOW
+
 ART = Path(__file__).with_name("assets") / "pianta_face.png"
-LAMP = "#f2b544"
 PANEL = "#1d2226"
 
 
@@ -63,7 +64,7 @@ def tray_icon(running: int, total: int, size: int) -> Image.Image:
         (x, y),
         text,
         font=font,
-        fill=LAMP if running else "#ffffff",
+        fill=LOGO_YELLOW if running else "#ffffff",
         stroke_width=stroke,
         stroke_fill=PANEL,
     )

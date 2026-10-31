@@ -1,4 +1,4 @@
-"""Tray app: a lamp-switch flyout for the tools, and a small settings window per tool."""
+"""Tray app: a flyout with a switch per tool, and a small settings window per tool."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from typing import Any
 from carol_aio import __version__, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.theme import FONT, px
-from carol_aio.tool import Tool
+from carol_aio.tool import Field, Tool
 from carol_aio.tools import create_tools
 from carol_aio.tray import Tray
-from carol_aio.widgets import GearButton, Switch, flat_button
+from carol_aio.widgets import Dropdown, GearButton, Segmented, Switch, flat_button
 
 CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
@@ -25,7 +25,10 @@ EDGE_GAP = 12
 
 
 class SettingsDialog(tk.Toplevel):
-    """Form generated from a tool's ``fields``; saving writes to config.yaml."""
+    """Form generated from a tool's ``fields``; saving writes to config.yaml.
+
+    A borderless card like the flyout, anchored to the same corner.
+    """
 
     def __init__(
         self,
@@ -34,109 +37,159 @@ class SettingsDialog(tk.Toplevel):
         on_save: Callable[[Tool, dict[str, Any]], None],
         anchor: tuple[int, int],
     ) -> None:
-        super().__init__(parent, bg=theme.PANEL)
+        super().__init__(parent, bg=theme.LINE)
         self.tool, self.on_save = tool, on_save
-        self.title(f"{tool.name} settings")
-        self.resizable(False, False)
-        self.attributes("-toolwindow", True, "-topmost", True)
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
         self.vars: dict[str, tk.BooleanVar | tk.StringVar] = {}
-        self.switches: dict[str, Switch] = {}
+        self.setters: dict[str, Callable[[Any], None]] = {}
+        self.shown = [f for f in tool.fields if not f.advanced]
+        self.width = px(FLYOUT_WIDTH)
+        wrap = self.width - px(36) - 2
 
-        form = tk.Frame(self, bg=theme.PANEL, padx=px(18), pady=px(16))
-        form.pack(fill="both", expand=True)
-        form.columnconfigure(0, weight=1)
-        if not tool.fields:
+        panel = tk.Frame(self, bg=theme.PANEL)
+        panel.pack(fill="both", expand=True, padx=1, pady=1)
+        header = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(10))
+        header.pack(fill="x")
+        tk.Label(
+            header, text=tool.name, font=(FONT, 11, "bold"), fg=theme.TEXT, bg=theme.PANEL
+        ).pack(side="left")
+        GearButton(header, self.destroy, glyph="\u2715", size=11).pack(side="right")
+        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
+
+        body = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(16))
+        body.pack(fill="x")
+        if not self.shown:
             tk.Label(
-                form,
+                body,
                 text="This tool has no settings.",
                 font=(FONT, 10),
                 fg=theme.MUTED,
                 bg=theme.PANEL,
-            ).grid(row=0, column=0, sticky="w")
-        for i, f in enumerate(tool.fields):
-            value = tool.settings[f.key]
-            cell = tk.Frame(form, bg=theme.PANEL)
-            cell.grid(row=i, column=0, sticky="ew", pady=(0, px(12)))
-            cell.columnconfigure(0, weight=1)
-            tk.Label(
-                cell, text=f.label, font=(FONT, 10), fg=theme.TEXT, bg=theme.PANEL, anchor="w"
-            ).grid(row=0, column=0, sticky="w")
-            if f.type is bool:
-                flag = tk.BooleanVar(value=value)
-                switch = Switch(cell, value, flag.set)
-                switch.grid(row=0, column=1, sticky="e")
-                self.vars[f.key], self.switches[f.key] = flag, switch
-            else:
-                text = tk.StringVar(value=str(value))
-                tk.Entry(
-                    cell,
-                    textvariable=text,
-                    width=12,
-                    font=(FONT, 10),
-                    justify="right",
-                    bg=theme.RAISED,
-                    fg=theme.TEXT,
-                    insertbackground=theme.TEXT,
-                    relief="flat",
-                    highlightthickness=1,
-                    highlightbackground=theme.LINE,
-                    highlightcolor=theme.LAMP,
-                ).grid(row=0, column=1, sticky="e", ipady=px(3))
-                self.vars[f.key] = text
-            if f.help:
-                tk.Label(
-                    cell,
-                    text=f.help,
-                    font=(FONT, 9),
-                    fg=theme.MUTED,
-                    bg=theme.PANEL,
-                    anchor="w",
-                    justify="left",
-                    wraplength=px(300),
-                ).grid(row=1, column=0, columnspan=2, sticky="w")
+            ).pack(anchor="w")
+        for f in self.shown:
+            self._add_field(body, f, wrap)
 
         self.error = tk.StringVar()
         tk.Label(
-            form,
+            panel,
             textvariable=self.error,
             font=(FONT, 9),
             fg=theme.FAULT,
             bg=theme.PANEL,
             anchor="w",
             justify="left",
-            wraplength=px(300),
-        ).grid(row=len(tool.fields), column=0, sticky="w")
+            wraplength=wrap,
+            padx=px(18),
+        ).pack(fill="x")
 
-        buttons = tk.Frame(self, bg=theme.PANEL, padx=px(18), pady=px(12))
-        buttons.pack(fill="x")
-        flat_button(buttons, "Reset to defaults", self._reset).pack(side="left")
-        flat_button(buttons, "Save", self._save, primary=True).pack(side="right")
-        flat_button(buttons, "Cancel", self.destroy).pack(side="right", padx=(0, px(8)))
+        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x", pady=(px(8), 0))
+        footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(10))
+        footer.pack(fill="x")
+        flat_button(footer, "Reset to defaults", self._reset, quiet=True).pack(side="left")
+        flat_button(footer, "Save", self._save, primary=True).pack(side="right")
+        flat_button(footer, "Cancel", self.destroy, quiet=True).pack(side="right", padx=(0, px(4)))
 
         self.bind("<Escape>", lambda _e: self.destroy())
         self._place(anchor)
-        theme.dark_titlebar(self)
-        self.focus_force()
+        self.after_idle(self.focus_force)
+
+    def _caption(self, parent: tk.Misc, text: str, wrap: int, pad: int = 6) -> tk.Label:
+        label = tk.Label(
+            parent,
+            text=text,
+            font=(FONT, 9),
+            fg=theme.MUTED,
+            bg=theme.PANEL,
+            anchor="w",
+            justify="left",
+            wraplength=wrap,
+        )
+        label.pack(fill="x", pady=(px(pad), 0))
+        return label
+
+    def _add_field(self, body: tk.Frame, f: Field, wrap: int) -> None:
+        value = self.tool.settings[f.key]
+        block = tk.Frame(body, bg=theme.PANEL)
+        block.pack(fill="x", pady=(0, px(16)))
+        top = tk.Frame(block, bg=theme.PANEL)
+        top.pack(fill="x")
+        tk.Label(top, text=f.label, font=(FONT, 10), fg=theme.TEXT, bg=theme.PANEL).pack(
+            side="left"
+        )
+
+        if f.type is bool:
+            flag = tk.BooleanVar(value=value)
+            switch = Switch(top, value, flag.set)
+            switch.pack(side="right")
+            self.vars[f.key], self.setters[f.key] = flag, lambda v: switch.set(bool(v))
+        elif f.choices:
+            text = tk.StringVar(value=value)
+            hints = {key: hint_text for key, _label, hint_text in f.choices}
+            hint_label: list[tk.Label] = []
+
+            def changed(key: str) -> None:
+                text.set(key)
+                hint_label[0].configure(text=hints[key])
+
+            choice = Segmented(block, [(k, lbl) for k, lbl, _ in f.choices], value, changed)
+            choice.pack(fill="x", pady=(px(6), 0))
+            hint_label.append(self._caption(block, hints.get(value, ""), wrap))
+
+            def apply_choice(v: Any) -> None:
+                choice.set(v)
+                changed(v)
+
+            self.vars[f.key], self.setters[f.key] = text, apply_choice
+        elif f.picker:
+            text = tk.StringVar(value=value)
+            dropdown = Dropdown(block, self.tool.options(f.key), value, text.set)
+            dropdown.pack(fill="x", pady=(px(6), 0))
+
+            def apply_pick(v: Any) -> None:
+                dropdown.set(v)
+                text.set(v)
+
+            self.vars[f.key], self.setters[f.key] = text, apply_pick
+        else:
+            text = tk.StringVar(value=str(value))
+            entry = tk.Entry(
+                block,
+                textvariable=text,
+                font=(FONT, 10),
+                bg=theme.RAISED,
+                fg=theme.TEXT,
+                insertbackground=theme.TEXT,
+                relief="flat",
+                highlightthickness=1,
+                highlightbackground=theme.LINE,
+                highlightcolor=theme.ACCENT,
+            )
+            entry.pack(fill="x", pady=(px(6), 0), ipady=px(5))
+            entry.bind("<Return>", lambda _e: self._save())
+            self.vars[f.key] = text
+        if f.help:
+            self._caption(block, f.help, wrap)
 
     def _place(self, anchor: tuple[int, int]) -> None:
         """Put the bottom-right corner at ``anchor``, kept on screen."""
         self.update_idletasks()
         left, top, right, bottom = theme.work_area(self)
-        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
-        x = max(left, min(anchor[0] - w, right - w))
+        h = self.winfo_reqheight()
+        x = max(left, min(anchor[0] - self.width, right - self.width))
         y = max(top, min(anchor[1] - h, bottom - h))
-        self.geometry(f"+{x}+{y}")
+        self.geometry(f"{self.width}x{h}+{x}+{y}")
 
     def _reset(self) -> None:
-        for f in self.tool.fields:
+        for f in self.shown:
             self.vars[f.key].set(f.default)
-            if f.key in self.switches:
-                self.switches[f.key].set(bool(f.default))
+            if f.key in self.setters:
+                self.setters[f.key](f.default)
         self.error.set("")
 
     def _save(self) -> None:
-        values = {}
-        for f in self.tool.fields:
+        values = dict(self.tool.settings)  # keep settings the popup doesn't show
+        for f in self.shown:
             try:
                 values[f.key] = f.coerce(self.vars[f.key].get())
             except ValueError as exc:
@@ -147,7 +200,7 @@ class SettingsDialog(tk.Toplevel):
 
 
 class ToolRow(tk.Frame):
-    """One tool: name and description on the left, gear and lamp switch on the right."""
+    """One tool: name and description on the left, gear and switch on the right."""
 
     def __init__(
         self,
@@ -293,13 +346,15 @@ class App(tk.Tk):
         theme.enable_dpi_awareness()
         super().__init__()
         theme.init_scale(self)
+        self._light = theme.system_is_light()
+        theme.use(self._light)
         self.title(f"Carol AIO {__version__}")
         self.withdraw()  # no window of its own; the tray icon is the way in
         self.tools = create_tools() if tools is None else tools
         self.config_store = config or Config()
         self.commands: queue.Queue[str] = queue.Queue()
         self.dialog: SettingsDialog | None = None
-        self.flyout = Flyout(self, self.tools, self.toggle_tool, self.open_settings)
+        self.flyout = self._build_flyout()
         self.tray = Tray(lambda: self.commands.put("toggle"), lambda: self.commands.put("quit"))
 
         self._load_config(startup=True)
@@ -308,6 +363,21 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.after(CONFIG_POLL_MS, self._poll_config)
         self.after(QUEUE_POLL_MS, self._poll_commands)
+
+    def _build_flyout(self) -> Flyout:
+        return Flyout(self, self.tools, self.toggle_tool, self.open_settings)
+
+    def _follow_system_theme(self) -> None:
+        """Rebuild the panel in the new colours if Windows switched light/dark."""
+        light = theme.system_is_light()
+        if light == self._light:
+            return
+        self._light = light
+        theme.use(light)
+        message = self.flyout.status.get()
+        self.flyout.destroy()
+        self.flyout = self._build_flyout()
+        self.flyout.status.set(message)
 
     @property
     def status(self) -> tk.StringVar:
@@ -328,6 +398,8 @@ class App(tk.Tk):
                 if command == "quit":
                     self.close()
                     return
+                if not self.flyout.visible:
+                    self._follow_system_theme()
                 self.flyout.toggle()
         except queue.Empty:
             pass
@@ -385,6 +457,7 @@ class App(tk.Tk):
     def open_settings(self, tool: Tool) -> None:
         anchor = self.flyout.corner()
         self.flyout.hide()
+        self._follow_system_theme()
         if self.dialog is not None and self.dialog.winfo_exists():
             self.dialog.destroy()
         self.dialog = SettingsDialog(self, tool, self.save_settings, anchor)
