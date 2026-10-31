@@ -1,11 +1,16 @@
 """Main window: one row per tool with an on/off toggle and a settings gear."""
 
+from __future__ import annotations
+
 import argparse
 import tkinter as tk
+from collections.abc import Callable
 from tkinter import messagebox, ttk
+from typing import Any
 
 from carol_aio import __version__
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
+from carol_aio.tool import Tool
 from carol_aio.tools import create_tools
 
 CONFIG_POLL_MS = 1000
@@ -14,13 +19,18 @@ CONFIG_POLL_MS = 1000
 class SettingsDialog(tk.Toplevel):
     """Form generated from a tool's ``fields``; saving writes to config.yaml."""
 
-    def __init__(self, parent, tool, on_save):
+    def __init__(
+        self,
+        parent: tk.Tk,
+        tool: Tool,
+        on_save: Callable[[Tool, dict[str, Any]], None],
+    ) -> None:
         super().__init__(parent)
         self.title(f"{tool.name} settings")
         self.resizable(False, False)
         self.transient(parent)
         self.tool, self.on_save = tool, on_save
-        self.vars = {}
+        self.vars: dict[str, tk.BooleanVar | tk.StringVar] = {}
 
         form = ttk.Frame(self, padding=12)
         form.pack(fill="both", expand=True)
@@ -30,6 +40,7 @@ class SettingsDialog(tk.Toplevel):
         for i, f in enumerate(tool.fields):
             value = tool.settings[f.key]
             ttk.Label(form, text=f.label).grid(row=i, column=0, sticky="w", pady=4, padx=(0, 10))
+            var: tk.BooleanVar | tk.StringVar
             if f.type is bool:
                 var = tk.BooleanVar(value=value)
                 ttk.Checkbutton(form, variable=var).grid(row=i, column=1, sticky="w")
@@ -49,11 +60,11 @@ class SettingsDialog(tk.Toplevel):
         ttk.Button(buttons, text="Reset to defaults", command=self._reset).pack(side="left")
         self.grab_set()
 
-    def _reset(self):
+    def _reset(self) -> None:
         for f in self.tool.fields:
             self.vars[f.key].set(f.default)
 
-    def _save(self):
+    def _save(self) -> None:
         values = {}
         for f in self.tool.fields:
             try:
@@ -66,14 +77,22 @@ class SettingsDialog(tk.Toplevel):
 
 
 class ToolRow(ttk.Frame):
-    def __init__(self, parent, tool, on_toggle, on_gear):
+    def __init__(
+        self,
+        parent: tk.Misc,
+        tool: Tool,
+        on_toggle: Callable[[Tool, bool], None],
+        on_gear: Callable[[Tool], None],
+    ) -> None:
         super().__init__(parent, padding=(10, 8))
         self.tool, self._on_toggle = tool, on_toggle
         self.enabled = tk.BooleanVar(value=tool.running)
         self._label_var = tk.StringVar()
 
         self.columnconfigure(0, weight=1)
-        ttk.Label(self, text=tool.name, font=("Segoe UI", 11, "bold")).grid(row=0, column=0, sticky="w")
+        ttk.Label(self, text=tool.name, font=("Segoe UI", 11, "bold")).grid(
+            row=0, column=0, sticky="w"
+        )
         ttk.Label(self, text=tool.description, wraplength=300, foreground="#555").grid(
             row=1, column=0, sticky="w"
         )
@@ -86,24 +105,24 @@ class ToolRow(ttk.Frame):
         self.toggle.grid(row=0, column=2, rowspan=2, padx=(10, 0))
         self.sync()
 
-    def sync(self):
+    def sync(self) -> None:
         """Show the tool's real running state."""
         self.enabled.set(self.tool.running)
         self._label_var.set("On" if self.tool.running else "Off")
 
-    def _clicked(self):
+    def _clicked(self) -> None:
         self._on_toggle(self.tool, self.enabled.get())
         self.sync()
 
 
 class App(tk.Tk):
-    def __init__(self, tools=None, config=None):
+    def __init__(self, tools: list[Tool] | None = None, config: Config | None = None) -> None:
         super().__init__()
         self.title(f"Carol AIO {__version__}")
         self.minsize(480, 200)
         self.tools = create_tools() if tools is None else tools
         self.config_store = config or Config()
-        self.rows = {}
+        self.rows: dict[str, ToolRow] = {}
         self.status = tk.StringVar()
 
         body = ttk.Frame(self, padding=8)
@@ -124,14 +143,14 @@ class App(tk.Tk):
 
     # --- config <-> tools -------------------------------------------------
 
-    def _load_config(self, startup=False):
+    def _load_config(self, startup: bool = False) -> None:
         """Apply config.yaml to every tool; create the file if it is missing."""
         try:
             self.config_store.load()
         except ConfigError as exc:
             self.status.set(str(exc))
             return
-        problems = []
+        problems: list[str] = []
         for tool in self.tools:
             section = self.config_store.tool_section(tool.key)
             problems += tool.configure(section["settings"])
@@ -142,14 +161,14 @@ class App(tk.Tk):
         if startup and not self.config_store.path.exists():
             self._write_config()  # first run: write defaults so there is a file to edit
 
-    def _set_running(self, tool, enabled):
+    def _set_running(self, tool: Tool, enabled: bool) -> list[str]:
         try:
             tool.set_enabled(enabled)
         except Exception as exc:
             return [f"{tool.name}: could not start ({exc})"]
         return []
 
-    def _write_config(self):
+    def _write_config(self) -> None:
         for tool in self.tools:
             self.config_store.set_tool(tool.key, enabled=tool.running, settings=tool.settings)
         try:
@@ -157,36 +176,39 @@ class App(tk.Tk):
         except OSError as exc:
             self.status.set(f"Could not write {self.config_store.path.name}: {exc}")
 
-    def _poll_config(self):
+    def _poll_config(self) -> None:
         if self.config_store.changed_on_disk():
             self._load_config()
         self.after(CONFIG_POLL_MS, self._poll_config)
 
     # --- GUI actions ------------------------------------------------------
 
-    def toggle_tool(self, tool, enabled):
+    def toggle_tool(self, tool: Tool, enabled: bool) -> None:
         problems = self._set_running(tool, enabled)
         if problems:
             messagebox.showerror(tool.name, problems[0], parent=self)
         self._write_config()
 
-    def open_settings(self, tool):
+    def open_settings(self, tool: Tool) -> None:
         SettingsDialog(self, tool, self.save_settings)
 
-    def save_settings(self, tool, values):
+    def save_settings(self, tool: Tool, values: dict[str, Any]) -> None:
         tool.configure(values)
         self._write_config()
         self.status.set("")
 
-    def close(self):
+    def close(self) -> None:
         for tool in self.tools:
             tool.stop()
         self.destroy()
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Carol AIO")
-    parser.add_argument("--config", metavar="PATH",
-                        help=f"config file to use (or set ${ENV_VAR}); default: next to the app")
+    parser.add_argument(
+        "--config",
+        metavar="PATH",
+        help=f"config file to use (or set ${ENV_VAR}); default: next to the app",
+    )
     set_config_path(parser.parse_args(argv).config)
     App().mainloop()

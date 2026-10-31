@@ -12,9 +12,12 @@ The file lives next to the exe (or in the repo root when run from source).
 The GUI writes to it on every change and reloads it when it is edited by hand.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -31,15 +34,15 @@ class ConfigError(Exception):
 ENV_VAR = "CAROL_AIO_CONFIG"
 
 
-_override = None
+_override: str | None = None
 
 
-def set_config_path(path):
+def set_config_path(path: str | None) -> None:
     global _override
     _override = path
 
 
-def default_config_path():
+def default_config_path() -> Path:
     """``--config`` (via ``set_config_path``) > $CAROL_AIO_CONFIG > next to the exe."""
     override = _override or os.environ.get(ENV_VAR)
     if override:
@@ -52,21 +55,21 @@ def default_config_path():
 
 
 class Config:
-    def __init__(self, path=None):
+    def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path) if path else default_config_path()
-        self.data = {"tools": {}}
-        self._mtime = None
+        self.data: dict[str, Any] = {"tools": {}}
+        self._mtime: int | None = None
 
-    def _disk_mtime(self):
+    def _disk_mtime(self) -> int | None:
         try:
             return self.path.stat().st_mtime_ns
         except OSError:
             return None
 
-    def changed_on_disk(self):
+    def changed_on_disk(self) -> bool:
         return self._disk_mtime() != self._mtime
 
-    def load(self):
+    def load(self) -> None:
         """Read the file. Raises ConfigError (keeping old data) if it is invalid."""
         self._mtime = self._disk_mtime()
         if self._mtime is None:
@@ -81,7 +84,7 @@ class Config:
             raise ConfigError(f"{self.path.name}: expected a 'tools:' mapping at the top level")
         self.data = {**raw, "tools": raw.get("tools") or {}}
 
-    def tool_section(self, key):
+    def tool_section(self, key: str) -> dict[str, Any]:
         section = self.data["tools"].get(key)
         if not isinstance(section, dict):
             section = {}
@@ -91,7 +94,12 @@ class Config:
             "settings": settings if isinstance(settings, dict) else {},
         }
 
-    def set_tool(self, key, enabled=None, settings=None):
+    def set_tool(
+        self,
+        key: str,
+        enabled: bool | None = None,
+        settings: dict[str, Any] | None = None,
+    ) -> None:
         section = self.tool_section(key)
         if enabled is not None:
             section["enabled"] = bool(enabled)
@@ -99,7 +107,7 @@ class Config:
             section["settings"] = dict(settings)
         self.data["tools"][key] = section
 
-    def save(self):
+    def save(self) -> None:
         text = HEADER + yaml.safe_dump(self.data, sort_keys=False, default_flow_style=False)
         tmp = self.path.with_name(self.path.name + ".tmp")
         tmp.write_text(text, encoding="utf-8")

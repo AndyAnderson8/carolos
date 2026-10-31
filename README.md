@@ -54,3 +54,14 @@ To use a different location, run `CarolAIO.exe --config C:\path\to\config.yaml`
 (e.g. in a shortcut) or set the `CAROL_AIO_CONFIG` environment variable.
 
 Tools marked `enabled: true` start automatically when the app opens.
+
+## Development
+
+```
+pip install -r requirements-dev.txt
+black .                                   # formatter (config in pyproject.toml)
+mypy                                      # strict type checking
+python -m unittest discover -s tests -t .
+```
+
+All code is fully type-hinted; CI runs `black --check`, `mypy` and the tests before building the exe.
