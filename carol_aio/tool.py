@@ -1,6 +1,46 @@
 """Base class every mini-tool derives from."""
 
 import threading
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Field:
+    """One configurable setting; drives both validation and the settings dialog."""
+
+    key: str
+    label: str
+    type: type  # float, int, str or bool
+    default: object
+    min: float = None
+    max: float = None
+    help: str = ""
+
+    def coerce(self, value):
+        """Return ``value`` as this field's type or raise ValueError."""
+        if self.type is bool:
+            if isinstance(value, bool):
+                return value
+            text = str(value).strip().lower()
+            if text in ("true", "yes", "on", "1"):
+                return True
+            if text in ("false", "no", "off", "0"):
+                return False
+            raise ValueError(f"{value!r} is not true/false")
+        if self.type is str:
+            text = str(value).strip()
+            if not text:
+                raise ValueError("must not be empty")
+            return text
+        if isinstance(value, bool):
+            raise ValueError(f"{value!r} is not a number")
+        try:
+            number = self.type(value)
+        except (TypeError, ValueError):
+            raise ValueError(f"{value!r} is not a valid {self.type.__name__}") from None
+        if (self.min is not None and number < self.min) or (self.max is not None and number > self.max):
+            raise ValueError(f"must be between {self.min} and {self.max}")
+        return number
 
 
 class Tool:
@@ -14,8 +54,10 @@ class Tool:
     key = ""
     name = ""
     description = ""
+    fields = ()  # Field definitions; empty means the tool has no settings
 
     def __init__(self):
+        self.settings = self.defaults()
         self._running = False
         self._stop_event = threading.Event()
         self._thread = None
@@ -46,6 +88,27 @@ class Tool:
             if self._thread is not None and self._thread is not threading.current_thread():
                 self._thread.join(timeout=2)
             self._thread = None
+
+    def defaults(self):
+        return {f.key: f.default for f in self.fields}
+
+    def configure(self, raw):
+        """Validate ``raw`` against ``fields`` and swap in the result.
+
+        Invalid or missing values fall back to defaults. Returns a list of
+        error strings. The settings dict is replaced wholesale, so worker
+        threads can safely read ``self.settings`` at any time.
+        """
+        raw = raw if isinstance(raw, dict) else {}
+        settings, errors = self.defaults(), []
+        for f in self.fields:
+            if f.key in raw:
+                try:
+                    settings[f.key] = f.coerce(raw[f.key])
+                except ValueError as exc:
+                    errors.append(f"{self.key}.{f.key}: {exc}")
+        self.settings = settings
+        return errors
 
     def set_enabled(self, enabled):
         self.start() if enabled else self.stop()
