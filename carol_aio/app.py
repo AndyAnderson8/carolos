@@ -14,6 +14,7 @@ from typing import Any
 from carol_aio import __version__, bubble, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
+from carol_aio.icon import settings_art_photo
 from carol_aio.layered import LayeredWindow
 from carol_aio.theme import FONT, px
 from carol_aio.tool import Field, Tool
@@ -82,6 +83,8 @@ class SettingsDialog(tk.Toplevel):
             ).pack(anchor="w")
         for f in self.shown:
             self._add_field(body, f, wrap)
+        self._art = settings_art_photo(min(wrap, px(300)))  # kept so Tk doesn't drop it
+        tk.Label(body, image=self._art, bg=theme.PANEL).pack(pady=(px(2), 0))
 
         self.error = tk.StringVar()
         tk.Label(
