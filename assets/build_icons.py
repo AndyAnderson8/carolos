@@ -3,8 +3,7 @@
 The source is the character on a flat background; this cuts it out and writes
 assets/carol_aio.ico plus, in carol_aio/assets/: avatar_figure.png (her whole figure, used in
 the panel header and the tray icon) and avatar_hand.png (just her left hand and forearm, on a
-canvas the same size, so the header can draw it in front of the wavy edge), plus
-settings_art.png, the picture at the bottom of the settings popup (from settings_art_source.png).
+canvas the same size, so the header can draw it in front of the wavy edge).
 Run from the repo root: python assets/build_icons.py
 """
 
@@ -14,8 +13,6 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 HERE = Path(__file__).parent
 SOURCE = HERE / "avatar_source.png"
-SETTINGS_ART_SOURCE = HERE / "settings_art_source.png"
-SETTINGS_ART_PX = 900  # width of the cut-out picture
 SIZES = [16, 24, 32, 48, 64, 128, 256]
 FIGURE_BOX = (170, 40, 1070, 1170)  # her whole figure, palm to feet: a tall rectangle
 HAND_BOX = (150, 560, 430, 900)  # her left hand and forearm, in source-image pixels
@@ -99,13 +96,8 @@ def main() -> None:
     figure.save(assets / "avatar_figure.png", optimize=True)
     hand_layer(figure, scale).save(assets / "avatar_hand.png", optimize=True)
 
-    art = cut_out(Image.open(SETTINGS_ART_SOURCE))
-    art = art.crop(art.getbbox() or (0, 0, *art.size))
-    art.thumbnail((SETTINGS_ART_PX, SETTINGS_ART_PX), Image.Resampling.LANCZOS)
-    art.save(assets / "settings_art.png", optimize=True)
-
     rounded_tile(Image.open(SOURCE)).save(HERE / "carol_aio.ico", sizes=[(s, s) for s in SIZES])
-    print("wrote carol_aio.ico, avatar_figure.png, avatar_hand.png and settings_art.png")
+    print("wrote carol_aio.ico, avatar_figure.png and avatar_hand.png")
 
 
 if __name__ == "__main__":

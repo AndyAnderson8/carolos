@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import base64
 import ctypes
-import io
 import sys
-import tkinter as tk
 from functools import cache
 from pathlib import Path
 
@@ -16,13 +13,11 @@ from carol_aio.theme import LOGO_YELLOW
 
 FIGURE = Path(__file__).with_name("assets") / "avatar_figure.png"
 HAND = Path(__file__).with_name("assets") / "avatar_hand.png"
-SETTINGS_ART = Path(__file__).with_name("assets") / "settings_art.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "Carol AIO"
 # The part of the figure the tray icon zooms in on, as fractions (left, top, right, bottom):
 # her palm, flower and head. Her whole figure is too small to make out at 16 to 32 pixels.
 TRAY_CROP = (0.12, 0.02, 0.88, 0.46)
-ART_OPACITY = 0.45  # the settings picture is see-through, so it blends into the palette
 SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
 PANEL = "#1d2226"
 
@@ -49,28 +44,6 @@ def hand_image(height: int) -> Image.Image:
     """Just her left hand and forearm, on a canvas exactly the size ``figure_image`` gives."""
     hand = _hand()
     return hand.resize((round(hand.width * height / hand.height), height), Image.Resampling.LANCZOS)
-
-
-@cache
-def _settings_art() -> Image.Image:
-    return Image.open(SETTINGS_ART).convert("RGBA")
-
-
-def settings_art_image(width: int) -> Image.Image:
-    """The picture for the bottom of the settings popup, ``width`` pixels wide."""
-    art = _settings_art()
-    art = art.resize(
-        (width, max(1, round(art.height * width / art.width))), Image.Resampling.LANCZOS
-    )
-    art.putalpha(art.getchannel("A").point(lambda a: round(a * ART_OPACITY)))
-    return art
-
-
-def settings_art_photo(width: int) -> tk.PhotoImage:
-    """``settings_art_image`` as a Tk image."""
-    buffer = io.BytesIO()
-    settings_art_image(width).save(buffer, "PNG")
-    return tk.PhotoImage(data=base64.b64encode(buffer.getvalue()))
 
 
 def name_image(height: int, color: str) -> Image.Image:
