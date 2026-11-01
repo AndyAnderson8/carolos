@@ -1,17 +1,29 @@
-"""The update dialogs, and what each button does."""
+"""The update notices, and what each button does."""
 
 from __future__ import annotations
 
 import tempfile
 import threading
-import tkinter as tk
 from collections.abc import Callable
 from pathlib import Path
+from typing import Protocol
 
 from carol_aio import __version__, install, updates
-from carol_aio.dialogs import Choice, Prompt
+from carol_aio.pages import Choice, NoticePage
 
 Post = Callable[[Callable[[], None]], None]  # run something on the Tk thread
+
+
+class NoticeHost(Protocol):
+    """Where notices appear: the tray panel."""
+
+    def show_notice(
+        self, title: str, message: str, choices: list[Choice], detail: str = ""
+    ) -> NoticePage: ...
+
+    def notice_open(self) -> bool: ...
+
+    def show(self) -> None: ...
 
 
 class Updater:
@@ -21,10 +33,9 @@ class Updater:
     then quits and runs it, and the installer replaces the app and relaunches it.
     """
 
-    def __init__(self, root: tk.Tk, post: Post, on_update: Callable[[Path], None]) -> None:
-        self.root, self.post, self.on_update = root, post, on_update
+    def __init__(self, host: NoticeHost, post: Post, on_update: Callable[[Path], None]) -> None:
+        self.host, self.post, self.on_update = host, post, on_update
         self._busy = False
-        self._prompt: Prompt | None = None
 
     def check(self, manual: bool) -> None:
         """Look for an update. Automatic checks stay quiet unless there is one to offer."""
@@ -36,10 +47,12 @@ class Updater:
                     "program to get them.",
                 )
             return
-        if self._busy or self._open():
-            self._raise()
+        if self._busy or self.host.notice_open():
+            self.host.show()
             return
         self._busy = True
+        if manual:
+            self.host.show_notice("Updates", "Checking for updates...", [Choice("Close")])
         threading.Thread(target=self._look, args=(manual,), daemon=True).start()
 
     def _look(self, manual: bool) -> None:
@@ -61,66 +74,54 @@ class Updater:
             else:
                 self._tell("You're up to date", f"Carol AIO {__version__} is the latest version.")
 
-    def _open(self) -> bool:
-        return self._prompt is not None and bool(self._prompt.winfo_exists())
-
-    def _raise(self) -> None:
-        if self._prompt is not None and self._prompt.winfo_exists():
-            self._prompt.lift()
-
     def _tell(self, title: str, message: str) -> None:
-        self._prompt = Prompt(self.root, title, message, [Choice("OK", primary=True)])
+        self.host.show_notice(title, message, [Choice("OK", primary=True)])
 
     def _offer(self, release: updates.Release) -> None:
-        prompt = Prompt(
-            self.root,
+        self.host.show_notice(
             "Update available",
             f"Carol AIO {release.version} is ready. You have {__version__}.",
-            [],
-            detail=release.notes,
-        )
-        prompt.set_choices(
             [
                 Choice("Later"),
-                Choice("Update now", lambda: self._download(prompt, release), True, True),
-            ]
+                Choice("Update now", lambda: self._download(release), True, True),
+            ],
+            detail=release.notes,
         )
-        self._prompt = prompt
 
-    def _download(self, prompt: Prompt, release: updates.Release) -> None:
+    def _download(self, release: updates.Release) -> None:
+        page = self.host.show_notice(
+            "Updating",
+            f"Downloading Carol AIO {release.version}...",
+            [Choice("Update now", primary=True, keep_open=True)],
+        )
+        page.set_choices([Choice("Update now", primary=True, keep_open=True)])
+        page.lock(True)
+        page.set_progress(0.0)
         staged = Path(tempfile.mkdtemp(prefix="carol_aio_update_")) / release.asset_name
-        prompt.lock(True)
-        prompt.set_status("Downloading...")
-        prompt.set_progress(0.0)
         last = [-1]
 
         def progress(received: int, total: int) -> None:
             percent = received * 100 // total if total else 0
             if percent != last[0]:
                 last[0] = percent
-                self.post(lambda: prompt.set_progress(percent / 100))
+                self.post(lambda: page.set_progress(percent / 100))
 
         def work() -> None:
             try:
                 updates.download(release, staged, progress)
             except updates.UpdateError as exc:
-                self.post(lambda: self._failed(prompt, release, str(exc)))
+                self.post(lambda: self._failed(release, str(exc)))
             else:
-                self.post(lambda: self._downloaded(prompt, staged))
+                self.post(lambda: self.on_update(staged))
 
         threading.Thread(target=work, daemon=True).start()
 
-    def _downloaded(self, prompt: Prompt, staged: Path) -> None:
-        prompt.destroy()
-        self.on_update(staged)
-
-    def _failed(self, prompt: Prompt, release: updates.Release, message: str) -> None:
-        prompt.set_progress(None)
-        prompt.set_status(message, fault=True)
-        prompt.lock(False)
-        prompt.set_choices(
+    def _failed(self, release: updates.Release, message: str) -> None:
+        page = self.host.show_notice(
+            "Couldn't update",
+            message,
             [
                 Choice("Close"),
-                Choice("Try again", lambda: self._download(prompt, release), True, True),
-            ]
+                Choice("Try again", lambda: self._download(release), True, True),
+            ],
         )

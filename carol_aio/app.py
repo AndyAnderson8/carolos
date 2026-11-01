@@ -1,4 +1,4 @@
-"""Tray app: a flyout with a switch per tool, and a small settings window per tool."""
+"""Tray app: a flyout with a switch per tool; settings and update notices are pages inside it."""
 
 from __future__ import annotations
 
@@ -14,215 +14,19 @@ from typing import Any
 from carol_aio import __version__, bubble, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
-from carol_aio.icon import settings_art_photo
 from carol_aio.layered import LayeredWindow
 from carol_aio.theme import FONT, px
-from carol_aio.tool import Field, Tool
+from carol_aio.pages import Choice, NoticePage, SettingsPage
+from carol_aio.tool import Tool
 from carol_aio.tools import create_tools
 from carol_aio.tray import Tray
-from carol_aio.widgets import Dropdown, GearButton, Segmented, Switch, flat_button
+from carol_aio.widgets import GearButton, Switch, flat_button, heading
 
 CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
 AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
-FLYOUT_WIDTH = 384
 EDGE_GAP = 12
-
-
-class SettingsDialog(tk.Toplevel):
-    """Form generated from a tool's ``fields``; saving writes to config.yaml.
-
-    A borderless card like the flyout, anchored to the same corner.
-    """
-
-    def __init__(
-        self,
-        parent: tk.Tk,
-        tool: Tool,
-        on_save: Callable[[Tool, dict[str, Any]], None],
-        anchor: tuple[int, int],
-        on_close: Callable[[], None],
-    ) -> None:
-        super().__init__(parent, bg=theme.OUTLINE)
-        self.tool, self.on_save, self.on_close = tool, on_save, on_close
-        self.overrideredirect(True)
-        self.attributes("-topmost", True)
-        self.vars: dict[str, tk.BooleanVar | tk.StringVar] = {}
-        self.setters: dict[str, Callable[[Any], None]] = {}
-        self.shown = [f for f in tool.fields if not f.advanced]
-        self.width = px(FLYOUT_WIDTH)
-        wrap = self.width - px(36) - px(4)
-
-        panel = tk.Frame(self, bg=theme.PANEL)
-        panel.pack(fill="both", expand=True, padx=px(2), pady=px(2))
-        header = tk.Frame(panel, bg=theme.SEA, padx=px(18), pady=px(10))
-        header.pack(fill="x")
-        tk.Label(
-            header, text=tool.name, font=(FONT, 11, "bold"), fg=theme.ON_SEA, bg=theme.SEA
-        ).pack(side="left")
-        GearButton(
-            header,
-            self._close,
-            bg=theme.SEA,
-            color=theme.ON_SEA,
-            hover="#ffffff",
-            glyph="\u2715",
-            size=11,
-        ).pack(side="right")
-        tk.Frame(panel, bg=theme.OUTLINE, height=px(2)).pack(fill="x")
-
-        body = tk.Frame(panel, bg=theme.PANEL, padx=px(18), pady=px(16))
-        body.pack(fill="x")
-        if not self.shown:
-            tk.Label(
-                body,
-                text="This tool has no settings.",
-                font=(FONT, 10),
-                fg=theme.MUTED,
-                bg=theme.PANEL,
-            ).pack(anchor="w")
-        for f in self.shown:
-            self._add_field(body, f, wrap)
-        self.error = tk.StringVar()
-        tk.Label(
-            panel,
-            textvariable=self.error,
-            font=(FONT, 9),
-            fg=theme.FAULT,
-            bg=theme.PANEL,
-            anchor="w",
-            justify="left",
-            wraplength=wrap,
-            padx=px(18),
-        ).pack(fill="x")
-
-        # A small, faint car "driving" along the buttons' divider: its tyres sit right on the line.
-        self._art = settings_art_photo(px(104))  # kept so Tk doesn't drop it
-        tk.Label(panel, image=self._art, bg=theme.PANEL, bd=0, padx=0, pady=0).pack(
-            anchor="w", padx=(px(20), 0)
-        )
-
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
-        footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(10))
-        footer.pack(fill="x")
-        flat_button(footer, "Reset to defaults", self._reset, quiet=True).pack(side="left")
-        flat_button(footer, "Save", self._save, primary=True).pack(side="right")
-        flat_button(footer, "Cancel", self._close, quiet=True).pack(side="right", padx=(0, px(4)))
-
-        self.bind("<Escape>", lambda _e: self._close())
-        theme.round_corners(self)
-        self._place(anchor)
-        self.after_idle(self.focus_force)
-
-    def _caption(self, parent: tk.Misc, text: str, wrap: int, pad: int = 6) -> tk.Label:
-        label = tk.Label(
-            parent,
-            text=text,
-            font=(FONT, 9),
-            fg=theme.MUTED,
-            bg=theme.PANEL,
-            anchor="w",
-            justify="left",
-            wraplength=wrap,
-        )
-        label.pack(fill="x", pady=(px(pad), 0))
-        return label
-
-    def _add_field(self, body: tk.Frame, f: Field, wrap: int) -> None:
-        value = self.tool.settings[f.key]
-        block = tk.Frame(body, bg=theme.PANEL)
-        block.pack(fill="x", pady=(0, px(16)))
-        top = tk.Frame(block, bg=theme.PANEL)
-        top.pack(fill="x")
-        tk.Label(top, text=f.label, font=(FONT, 10), fg=theme.TEXT, bg=theme.PANEL).pack(
-            side="left"
-        )
-
-        if f.type is bool:
-            flag = tk.BooleanVar(value=value)
-            switch = Switch(top, value, flag.set)
-            switch.pack(side="right")
-            self.vars[f.key], self.setters[f.key] = flag, lambda v: switch.set(bool(v))
-        elif f.choices:
-            text = tk.StringVar(value=value)
-            hints = {key: hint_text for key, _label, hint_text in f.choices}
-            hint_label: list[tk.Label] = []
-
-            def changed(key: str) -> None:
-                text.set(key)
-                hint_label[0].configure(text=hints[key])
-
-            choice = Segmented(block, [(k, lbl) for k, lbl, _ in f.choices], value, changed)
-            choice.pack(fill="x", pady=(px(6), 0))
-            hint_label.append(self._caption(block, hints.get(value, ""), wrap))
-
-            def apply_choice(v: Any) -> None:
-                choice.set(v)
-                changed(v)
-
-            self.vars[f.key], self.setters[f.key] = text, apply_choice
-        elif f.picker:
-            text = tk.StringVar(value=value)
-            dropdown = Dropdown(block, self.tool.options(f.key), value, text.set)
-            dropdown.pack(fill="x", pady=(px(6), 0))
-
-            def apply_pick(v: Any) -> None:
-                dropdown.set(v)
-                text.set(v)
-
-            self.vars[f.key], self.setters[f.key] = text, apply_pick
-        else:
-            text = tk.StringVar(value=str(value))
-            entry = tk.Entry(
-                block,
-                textvariable=text,
-                font=(FONT, 10),
-                bg=theme.RAISED,
-                fg=theme.TEXT,
-                insertbackground=theme.TEXT,
-                relief="flat",
-                highlightthickness=1,
-                highlightbackground=theme.LINE,
-                highlightcolor=theme.ACCENT,
-            )
-            entry.pack(fill="x", pady=(px(6), 0), ipady=px(5))
-            entry.bind("<Return>", lambda _e: self._save())
-            self.vars[f.key] = text
-        if f.help:
-            self._caption(block, f.help, wrap)
-
-    def _place(self, anchor: tuple[int, int]) -> None:
-        """Put the bottom-right corner at ``anchor``, kept on screen."""
-        self.update_idletasks()
-        left, top, right, bottom = theme.work_area(self)
-        h = self.winfo_reqheight()
-        x = max(left, min(anchor[0] - self.width, right - self.width))
-        y = max(top, min(anchor[1] - h, bottom - h))
-        self.geometry(f"{self.width}x{h}+{x}+{y}")
-
-    def _reset(self) -> None:
-        for f in self.shown:
-            self.vars[f.key].set(f.default)
-            if f.key in self.setters:
-                self.setters[f.key](f.default)
-        self.error.set("")
-
-    def _close(self) -> None:
-        """Leave the settings and go back to the main panel (Cancel, Save, the x and Escape)."""
-        self.destroy()
-        self.on_close()
-
-    def _save(self) -> None:
-        values = dict(self.tool.settings)  # keep settings the popup doesn't show
-        for f in self.shown:
-            try:
-                values[f.key] = f.coerce(self.vars[f.key].get())
-            except ValueError as exc:
-                self.error.set(f"{f.label}: {exc}")
-                return
-        self.on_save(self.tool, values)
-        self._close()
 
 
 class ToolRow(tk.Frame):
@@ -234,8 +38,9 @@ class ToolRow(tk.Frame):
         tool: Tool,
         on_toggle: Callable[[Tool, bool], None],
         on_gear: Callable[[Tool], None],
+        pad: int = 14,
     ) -> None:
-        super().__init__(parent, bg=theme.PANEL, padx=px(18), pady=px(14))
+        super().__init__(parent, bg=theme.PANEL, padx=px(18), pady=px(pad))
         self.tool, self._on_toggle = tool, on_toggle
         self.columnconfigure(0, weight=1)
         tk.Label(self, text=tool.name, font=(FONT, 11, "bold"), fg=theme.TEXT, bg=theme.PANEL).grid(
@@ -249,7 +54,7 @@ class ToolRow(tk.Frame):
             bg=theme.PANEL,
             justify="left",
             anchor="w",
-            wraplength=px(FLYOUT_WIDTH - 150),
+            wraplength=px(theme.PAGE_WIDTH - 150),
         ).grid(row=1, column=0, sticky="w", pady=(px(2), 0))
         GearButton(self, lambda: on_gear(tool)).grid(row=0, column=1, rowspan=2, padx=(px(8), 0))
         self.switch = Switch(self, tool.running, self._clicked)
@@ -286,17 +91,16 @@ class Flyout(tk.Toplevel):
         self._art: dict[tuple[object, ...], bubble.Bubble] = {}
 
         # This window holds only the controls; the bubble round it is drawn by ``self.shape``.
-        panel = tk.Frame(self, bg=theme.PANEL, width=px(FLYOUT_WIDTH))
-        panel.pack(fill="both", expand=True)
-        tk.Label(
-            panel,
-            text="Tools",
-            font=(FONT, 10, "bold"),
-            fg=theme.MUTED,
-            bg=theme.PANEL,
-            anchor="w",
-            padx=px(18),
-        ).pack(fill="x", pady=(px(2), 0))
+        tk.Frame(
+            self, bg=theme.PANEL, width=px(theme.PAGE_WIDTH), height=1
+        ).pack()  # sets the width
+        self.host = tk.Frame(self, bg=theme.PANEL)
+        self.host.pack(fill="x")
+        self.tools_page = panel = tk.Frame(self.host, bg=theme.PANEL)
+        self.page: tk.Frame = panel
+        self.notice: NoticePage | None = None
+        panel.pack(fill="x")
+        heading(panel, "Tools").pack(fill="x", pady=(px(2), 0))
 
         if not tools:
             tk.Label(
@@ -310,8 +114,9 @@ class Flyout(tk.Toplevel):
         for i, tool in enumerate(tools):
             if i:
                 tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x", padx=px(18))
-            row = ToolRow(panel, tool, on_toggle, on_gear)
-            row.pack(fill="x")
+            # the first row sits a little higher, under the heading; the gap below stays the same
+            row = ToolRow(panel, tool, on_toggle, on_gear, pad=9 if i == 0 else 14)
+            row.pack(fill="x", pady=(0, px(5)) if i == 0 else 0)
             self.rows[tool.key] = row
 
         footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(4))
@@ -330,18 +135,80 @@ class Flyout(tk.Toplevel):
             bg=theme.PANEL,
             anchor="w",
             justify="left",
-            wraplength=px(FLYOUT_WIDTH - 36),
+            wraplength=px(theme.PAGE_WIDTH - 36),
             padx=px(18),
         )
         self.status.trace_add("write", lambda *_: self._show_status())
-        self.bind("<Escape>", lambda _e: self.hide())
+        self.bind("<Escape>", lambda _e: self._escape())
+        self.bind("<Return>", lambda _e: self._enter())
         self.bind("<FocusOut>", lambda _e: self.after(80, self._hide_if_unfocused))
+
+    # --- pages ------------------------------------------------------------
+
+    def _open(self, page: tk.Frame) -> None:
+        """Swap the page shown in the bubble; the tools page is kept, any other is discarded."""
+        old = self.page
+        old.pack_forget()
+        if old is not self.tools_page:
+            old.destroy()
+        self.page = page
+        page.pack(fill="x")
+        self.refit()
+
+    def close_page(self) -> None:
+        """Back to the tools."""
+        if self.page is self.tools_page:
+            return
+        if self.page is self.notice:
+            self.notice = None
+        self._open(self.tools_page)
+
+    def show_settings(self, tool: Tool, on_save: Callable[[Tool, dict[str, Any]], None]) -> None:
+        self.notice = None
+        self._open(SettingsPage(self.host, tool, on_save, self.close_page, self.refit))
+        if not self.visible:
+            self.show()
+
+    def show_notice(
+        self, title: str, message: str, choices: list[Choice], detail: str = ""
+    ) -> NoticePage:
+        """Show a message page (reusing the one already up) and make sure the panel is open."""
+        if self.notice is not None and self.page is self.notice:
+            self.notice.update_content(title, message, choices, detail)
+        else:
+            self.notice = NoticePage(
+                self.host, title, message, choices, detail, self.refit, self.close_page
+            )
+            self._open(self.notice)
+        if not self.visible:
+            self.show()
+        return self.notice
+
+    def notice_open(self) -> bool:
+        return self.notice is not None and self.page is self.notice
+
+    def _escape(self) -> None:
+        if isinstance(self.page, (SettingsPage, NoticePage)):
+            self.page.escape()
+        else:
+            self.hide()
+
+    def _enter(self) -> None:
+        if isinstance(self.page, NoticePage):
+            self.page.enter()
+
+    def refit(self) -> None:
+        """The page changed size: redraw the bubble round it."""
+        if self.visible:
+            self._place()
+            self.lift()  # the redrawn bubble comes up on top; the controls go back above it
 
     def _show_status(self) -> None:
         if self.status.get():
             self.status_label.pack(fill="x", pady=(0, px(10)))
         else:
             self.status_label.pack_forget()
+        self.refit()
 
     def _hide_if_unfocused(self) -> None:
         if self.winfo_viewable() and self.focus_displayof() is None:
@@ -359,6 +226,12 @@ class Flyout(tk.Toplevel):
     def show(self) -> None:
         for row in self.rows.values():
             row.sync()
+        self._place()
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def _place(self) -> None:
         self.update_idletasks()
         w, h = self.winfo_reqwidth(), self.winfo_reqheight()
         art = self._bubble(w, h)
@@ -366,15 +239,17 @@ class Flyout(tk.Toplevel):
         x = right - art.image.width + art.margin  # the bubble's visible edge ends at the corner
         y = bottom - art.image.height + art.margin
         self.shape.show(art.image, x, y)
-        self.geometry(f"{w}x{h}+{x + art.content_x}+{y + art.content_y}")
-        self.deiconify()
-        self.lift()
-        self.focus_force()
+        geometry = f"{w}x{h}+{x + art.content_x}+{y + art.content_y}"
+        self.geometry(geometry)
+        self.update_idletasks()
+        self.geometry(geometry)  # a page swap resizes the window itself first; put it back in place
 
     def hide(self) -> None:
         self._hidden_at = time.monotonic()
         self.withdraw()
         self.shape.hide()
+        if not (isinstance(self.page, NoticePage) and self.page.busy):
+            self.close_page()  # next time it opens on the tools (a download keeps its page)
 
     def destroy(self) -> None:
         self.shape.destroy()
@@ -409,11 +284,10 @@ class App(tk.Tk):
         self.config_store = config or Config()
         self.inbox: queue.Queue[Callable[[], None]] = queue.Queue()
         self.pending_setup: Path | None = None  # a downloaded installer to run once we exit
-        self.dialog: SettingsDialog | None = None
-        self.updater = Updater(self, self.post, self._update_with)
         self.flyout = Flyout(
             self, self.tools, self.toggle_tool, self.open_settings, self.check_for_updates
         )
+        self.updater = Updater(self.flyout, self.post, self._update_with)
         self.tray = Tray(
             lambda: self.post(self.flyout.toggle),
             lambda: self.post(self.check_for_updates),
@@ -454,7 +328,6 @@ class App(tk.Tk):
             self.after(QUEUE_POLL_MS, self._poll_inbox)
 
     def check_for_updates(self) -> None:
-        self.flyout.hide()
         self.updater.check(manual=True)
 
     def _update_with(self, setup: Path) -> None:
@@ -512,11 +385,7 @@ class App(tk.Tk):
         self._refresh_tray()
 
     def open_settings(self, tool: Tool) -> None:
-        anchor = self.flyout.corner()
-        self.flyout.hide()
-        if self.dialog is not None and self.dialog.winfo_exists():
-            self.dialog.destroy()
-        self.dialog = SettingsDialog(self, tool, self.save_settings, anchor, self.flyout.show)
+        self.flyout.show_settings(tool, self.save_settings)
 
     def save_settings(self, tool: Tool, values: dict[str, Any]) -> None:
         tool.configure(values)

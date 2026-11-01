@@ -24,6 +24,8 @@ SEA = "#1d93b3"  # header band, like the sea behind the icon
 ON_ACCENT = "#43261a"  # text and knob sitting on the accent
 ON_SEA = "#fff6df"  # text sitting on the header band
 
+PAGE_WIDTH = 384  # every page inside the panel is this wide (before display scaling)
+
 FONT = "Segoe UI"
 SYMBOLS = "Segoe UI Symbol"
 

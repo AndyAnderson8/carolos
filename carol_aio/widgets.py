@@ -1,8 +1,9 @@
-"""Small custom widgets: switch, icon button, flat buttons, choice control, dropdown."""
+"""Small custom widgets: switch, pill and flat buttons, headings, choice control, dropdown."""
 
 from __future__ import annotations
 
 import tkinter as tk
+import tkinter.font as tkfont
 from collections.abc import Callable
 from functools import partial
 
@@ -12,6 +13,27 @@ from carol_aio.theme import FONT, px
 SLIDE_STEPS = 6
 SLIDE_MS = 12
 CHEVRON = "▾"
+
+
+def draw_pill(canvas: tk.Canvas, x0: float, y0: float, x1: float, y1: float, color: str) -> None:
+    """A filled pill (a rectangle with round ends) on ``canvas``."""
+    r = y1 - y0
+    canvas.create_oval(x0, y0, x0 + r, y1, fill=color, outline=color)
+    canvas.create_oval(x1 - r, y0, x1, y1, fill=color, outline=color)
+    canvas.create_rectangle(x0 + r / 2, y0, x1 - r / 2, y1, fill=color, outline=color)
+
+
+def heading(parent: tk.Misc, text: str) -> tk.Label:
+    """An underlined section heading, like "Tools". Pack it with ``fill="x"``."""
+    return tk.Label(
+        parent,
+        text=text,
+        font=(FONT, 10, "bold", "underline"),
+        fg=theme.MUTED,
+        bg=theme.PANEL,
+        anchor="w",
+        padx=px(18),
+    )
 
 
 class Switch(tk.Canvas):
@@ -72,19 +94,17 @@ class Switch(tk.Canvas):
         self._draw()
         self._after = self.after(SLIDE_MS, self._slide, target, step + 1)
 
-    def _pill(self, x0: float, y0: float, x1: float, y1: float, color: str) -> None:
-        r = y1 - y0
-        self.create_oval(x0, y0, x0 + r, y1, fill=color, outline=color)
-        self.create_oval(x1 - r, y0, x1, y1, fill=color, outline=color)
-        self.create_rectangle(x0 + r / 2, y0, x1 - r / 2, y1, fill=color, outline=color)
-
     def _draw(self) -> None:
         self.delete("all")
         pad, edge, gap = px(2), px(2), px(2)
         lit = self._pos > 0.5
         x0, y0, x1, y1 = pad, pad, self._width - pad, self._height - pad
-        self._pill(x0, y0, x1, y1, theme.OUTLINE)  # the chunky outline, then the track inside it
-        self._pill(x0 + edge, y0 + edge, x1 - edge, y1 - edge, theme.ACCENT if lit else theme.LINE)
+        draw_pill(
+            self, x0, y0, x1, y1, theme.OUTLINE
+        )  # the chunky outline, then the track inside it
+        draw_pill(
+            self, x0 + edge, y0 + edge, x1 - edge, y1 - edge, theme.ACCENT if lit else theme.LINE
+        )
         inner_h = y1 - y0 - 2 * edge
         knob = inner_h - 2 * gap
         travel = x1 - x0 - 2 * edge - 2 * gap - knob
@@ -165,6 +185,72 @@ def flat_button(
     )
 
 
+class PillButton(tk.Canvas):
+    """A pill-shaped, outlined button, like the switch. The primary one is the accent colour."""
+
+    def __init__(
+        self,
+        parent: tk.Misc,
+        text: str,
+        command: Callable[[], None],
+        primary: bool = False,
+        bg: str | None = None,
+    ) -> None:
+        bg = bg or theme.PANEL
+        self._font = tkfont.Font(family=FONT, size=10, weight="bold")
+        self._width = self._font.measure(text) + 2 * px(20)
+        self._height = self._font.metrics("linespace") + 2 * px(7)
+        super().__init__(
+            parent,
+            width=self._width,
+            height=self._height,
+            bg=bg,
+            highlightthickness=2,
+            highlightbackground=bg,
+            highlightcolor=theme.TEXT,
+            cursor="hand2",
+            takefocus=True,
+        )
+        self.text, self.command, self.primary = text, command, primary
+        self._enabled = True
+        self.bind("<Button-1>", self._clicked)
+        self.bind("<Return>", self._clicked)
+        self.bind("<space>", self._clicked)
+        self._draw()
+
+    def enable(self, on: bool) -> None:
+        self._enabled = on
+        self.configure(cursor="hand2" if on else "arrow")
+        self._draw()
+
+    def invoke(self) -> None:
+        """Press the button (nothing happens while it is disabled)."""
+        if self._enabled:
+            self.command()
+
+    def _clicked(self, _event: object) -> None:
+        self.focus_set()
+        self.invoke()
+
+    def _draw(self) -> None:
+        self.delete("all")
+        pad, edge = px(2), px(2)
+        x0, y0, x1, y1 = pad, pad, self._width - pad, self._height - pad
+        draw_pill(self, x0, y0, x1, y1, theme.OUTLINE if self._enabled else theme.LINE)
+        fill = theme.ACCENT if self.primary else theme.RAISED
+        draw_pill(
+            self, x0 + edge, y0 + edge, x1 - edge, y1 - edge, fill if self._enabled else theme.LINE
+        )
+        ink = theme.ON_ACCENT if self.primary else theme.TEXT
+        self.create_text(
+            self._width / 2,
+            self._height / 2,
+            text=self.text,
+            font=self._font,
+            fill=ink if self._enabled else theme.MUTED,
+        )
+
+
 class Segmented(tk.Frame):
     """A few mutually exclusive choices side by side; arrow keys move the selection."""
 
@@ -240,8 +326,8 @@ class Dropdown(tk.Frame):
         super().__init__(
             parent,
             bg=theme.RAISED,
-            highlightthickness=1,
-            highlightbackground=theme.LINE,
+            highlightthickness=2,
+            highlightbackground=theme.OUTLINE,
             highlightcolor=theme.ACCENT,
             takefocus=True,
             cursor="hand2",
@@ -280,11 +366,11 @@ class Dropdown(tk.Frame):
             self._open()
 
     def _open(self) -> None:
-        popup = tk.Toplevel(self, bg=theme.LINE)
+        popup = tk.Toplevel(self, bg=theme.OUTLINE)
         popup.overrideredirect(True)
         popup.attributes("-topmost", True)
         inner = tk.Frame(popup, bg=theme.RAISED)
-        inner.pack(fill="both", expand=True, padx=1, pady=1)
+        inner.pack(fill="both", expand=True, padx=px(2), pady=px(2))
         for key, label in self.options:
             row = tk.Frame(inner, bg=theme.RAISED, cursor="hand2")
             row.pack(fill="x")
@@ -336,9 +422,11 @@ class Dropdown(tk.Frame):
 
     def _close_if_unfocused(self) -> None:
         if self._popup is not None and self._popup.focus_displayof() is None:
-            self._close()
+            self._close(refocus=False)  # the person clicked into another app; leave focus there
 
-    def _close(self) -> None:
+    def _close(self, refocus: bool = True) -> None:
         if self._popup is not None:
             popup, self._popup = self._popup, None
             popup.destroy()
+            if refocus:  # give focus back to our window so it doesn't think it was clicked away
+                self.winfo_toplevel().focus_force()
