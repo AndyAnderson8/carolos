@@ -78,9 +78,13 @@ class SettingsArtTest(unittest.TestCase):
         art = settings_art_image(300)
         pixels = (art.getpixel((x, y)) for y in range(art.height) for x in range(art.width))
         red = [
-            p for p in pixels if isinstance(p, tuple) and p[3] == 255 and p[0] > 180 and p[1] < 70
+            p for p in pixels if isinstance(p, tuple) and p[3] > 100 and p[0] > 180 and p[1] < 70
         ]
         self.assertGreater(len(red), 1000)
+
+    def test_it_is_see_through_so_it_blends_in(self) -> None:
+        art = settings_art_image(300)
+        self.assertLessEqual(art.getchannel("A").getextrema()[1], round(255 * 0.6))
 
 
 if __name__ == "__main__":

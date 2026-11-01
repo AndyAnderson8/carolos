@@ -83,7 +83,7 @@ class SettingsDialog(tk.Toplevel):
             ).pack(anchor="w")
         for f in self.shown:
             self._add_field(body, f, wrap)
-        self._art = settings_art_photo(min(wrap, px(300)))  # kept so Tk doesn't drop it
+        self._art = settings_art_photo(px(190))  # kept so Tk doesn't drop it
         tk.Label(body, image=self._art, bg=theme.PANEL).pack(pady=(px(2), 0))
 
         self.error = tk.StringVar()
