@@ -84,7 +84,9 @@ class SettingsArtTest(unittest.TestCase):
 
     def test_it_is_see_through_so_it_blends_in(self) -> None:
         art = settings_art_image(300)
-        self.assertLessEqual(art.getchannel("A").getextrema()[1], round(255 * 0.6))
+        brightest = art.getchannel("A").getextrema()[1]
+        assert isinstance(brightest, (int, float))
+        self.assertLessEqual(brightest, round(255 * 0.6))
 
 
 if __name__ == "__main__":
