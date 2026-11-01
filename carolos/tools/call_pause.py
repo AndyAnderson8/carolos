@@ -19,7 +19,6 @@ from carolos.audio_apps import friendly_name, running_audio_apps
 from carolos.tool import Field, Tool
 
 PROCESS_NAME = "msedge.exe"
-THRESHOLD = 0.001  # Edge reads exactly 0 when silent, so any signal counts
 IDLE_POLL = 0.05  # seconds between checks while waiting for audio
 
 
@@ -135,7 +134,7 @@ class CallPause(Tool):
             while not stop.is_set():
                 cfg = self.settings
                 read_peak.process_name = cfg["process_name"].lower()
-                if trigger.update(read_peak() >= THRESHOLD):
+                if trigger.update(read_peak() > 0):
                     pause_playing_media(cfg["process_name"].lower().removesuffix(".exe"))
                 stop.wait(IDLE_POLL)
         finally:
