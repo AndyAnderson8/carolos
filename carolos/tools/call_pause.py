@@ -112,16 +112,6 @@ class CallPause(Tool):
             picker=True,
             help="The app that says the brand name before a call. Apps show up here once they have made sound.",
         ),
-        Field(
-            "threshold",
-            "Volume threshold",
-            float,
-            THRESHOLD,
-            0.0,
-            1.0,
-            "Peak level (0-1) counted as audible.",
-            advanced=True,
-        ),
     )
 
     def options(self, key: str) -> list[tuple[str, str]]:
@@ -145,7 +135,7 @@ class CallPause(Tool):
             while not stop.is_set():
                 cfg = self.settings
                 read_peak.process_name = cfg["process_name"].lower()
-                if trigger.update(read_peak() >= cfg["threshold"]):
+                if trigger.update(read_peak() >= THRESHOLD):
                     pause_playing_media(cfg["process_name"].lower().removesuffix(".exe"))
                 stop.wait(IDLE_POLL)
         finally:
