@@ -42,9 +42,10 @@ class SettingsDialog(tk.Toplevel):
         tool: Tool,
         on_save: Callable[[Tool, dict[str, Any]], None],
         anchor: tuple[int, int],
+        on_close: Callable[[], None],
     ) -> None:
         super().__init__(parent, bg=theme.OUTLINE)
-        self.tool, self.on_save = tool, on_save
+        self.tool, self.on_save, self.on_close = tool, on_save, on_close
         self.overrideredirect(True)
         self.attributes("-topmost", True)
         self.vars: dict[str, tk.BooleanVar | tk.StringVar] = {}
@@ -62,7 +63,7 @@ class SettingsDialog(tk.Toplevel):
         ).pack(side="left")
         GearButton(
             header,
-            self.destroy,
+            self._close,
             bg=theme.SEA,
             color=theme.ON_SEA,
             hover="#ffffff",
@@ -107,9 +108,9 @@ class SettingsDialog(tk.Toplevel):
         footer.pack(fill="x")
         flat_button(footer, "Reset to defaults", self._reset, quiet=True).pack(side="left")
         flat_button(footer, "Save", self._save, primary=True).pack(side="right")
-        flat_button(footer, "Cancel", self.destroy, quiet=True).pack(side="right", padx=(0, px(4)))
+        flat_button(footer, "Cancel", self._close, quiet=True).pack(side="right", padx=(0, px(4)))
 
-        self.bind("<Escape>", lambda _e: self.destroy())
+        self.bind("<Escape>", lambda _e: self._close())
         theme.round_corners(self)
         self._place(anchor)
         self.after_idle(self.focus_force)
@@ -207,6 +208,11 @@ class SettingsDialog(tk.Toplevel):
                 self.setters[f.key](f.default)
         self.error.set("")
 
+    def _close(self) -> None:
+        """Leave the settings and go back to the main panel (Cancel, Save, the x and Escape)."""
+        self.destroy()
+        self.on_close()
+
     def _save(self) -> None:
         values = dict(self.tool.settings)  # keep settings the popup doesn't show
         for f in self.shown:
@@ -216,7 +222,7 @@ class SettingsDialog(tk.Toplevel):
                 self.error.set(f"{f.label}: {exc}")
                 return
         self.on_save(self.tool, values)
-        self.destroy()
+        self._close()
 
 
 class ToolRow(tk.Frame):
@@ -510,7 +516,7 @@ class App(tk.Tk):
         self.flyout.hide()
         if self.dialog is not None and self.dialog.winfo_exists():
             self.dialog.destroy()
-        self.dialog = SettingsDialog(self, tool, self.save_settings, anchor)
+        self.dialog = SettingsDialog(self, tool, self.save_settings, anchor, self.flyout.show)
 
     def save_settings(self, tool: Tool, values: dict[str, Any]) -> None:
         tool.configure(values)
