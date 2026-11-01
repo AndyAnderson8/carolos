@@ -36,6 +36,15 @@ class BubbleTest(unittest.TestCase):
         solid = [p for p in column if isinstance(p, tuple) and p[3] > 200]
         self.assertTrue(solid)
 
+    def test_the_name_is_centred_in_the_blue_space_beside_her(self) -> None:
+        art = render(360, 200, COLORS)  # about as wide as the real panel
+        left, top, right, bottom = art.name_box
+        space_left, space_right = art.blue_space
+        self.assertLessEqual(abs((left - space_left) - (space_right - right)), 1)  # equal gaps
+        self.assertGreater(left - space_left, 4)  # and not squeezed against her
+        band_middle = art.body_y + art.band / 2
+        self.assertLessEqual(abs((top + bottom) / 2 - band_middle), 1)
+
     def test_the_header_band_is_sea_coloured(self) -> None:
         art = render(300, 200, COLORS)
         pixel = art.image.getpixel((art.image.width - art.margin - 24, art.body_y + 14))
