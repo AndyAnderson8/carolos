@@ -165,7 +165,7 @@ def render(
     out.paste((0, 0, 0, 255), mask=shadow)
     out.alpha_composite(bubble)
 
-    # The name is centred in the blue space left over beside her: between the right-hand edge of
+    # The name sits (nearly) centred in the blue space left over beside her: between the right-hand edge of
     # her (as high up as the band goes) and the bubble's right edge, and between the top and the wave.
     name = name_image(s(31), colors.on_sea)
     band_top, band_bottom = y0 * SS - figure_y, (y0 + band) * SS - figure_y
@@ -174,7 +174,7 @@ def render(
     )
     ink = rows.getbbox()
     her_right = round((figure_x + (ink[2] if ink else figure.width)) / SS)
-    name_x = round((her_right + x1 - name.width) / 2)
+    name_x = round((her_right + x1 - name.width) / 2) - s(10)  # a little left of dead centre
     name_y = round(y0 + band / 2 - name.height / 2)
     out.alpha_composite(name, (name_x, name_y))
     name_box = (name_x, name_y, name_x + name.width, name_y + name.height)
