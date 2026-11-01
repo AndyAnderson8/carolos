@@ -421,8 +421,15 @@ class Dropdown(tk.Frame):
             self._on_change(key)
 
     def _close_if_unfocused(self) -> None:
-        if self._popup is not None and self._popup.focus_displayof() is None:
-            self._close(refocus=False)  # the person clicked into another app; leave focus there
+        if self._popup is None:
+            return
+        try:
+            focused = self._popup.focus_get()
+        except KeyError:  # focus is on a Tk-internal window
+            focused = None
+        if focused is None or not str(focused).startswith(str(self._popup)):
+            # They clicked elsewhere, in this app or another: close, and leave focus where it went.
+            self._close(refocus=False)
 
     def _close(self, refocus: bool = True) -> None:
         if self._popup is not None:
