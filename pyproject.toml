@@ -1,0 +1,13 @@
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+platform = "win32"
+strict = true
+files = ["carolos", "tests", "main.py", "build.py"]
+
+[[tool.mypy.overrides]]
+module = ["pycaw.*", "comtypes.*", "PyInstaller.*", "pystray.*", "winrt.*"]
+ignore_missing_imports = true

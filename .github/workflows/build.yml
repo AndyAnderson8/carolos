@@ -1,0 +1,84 @@
+name: Build installer
+
+on:
+  push:
+    branches: [main, dev]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write # lets the release step create releases
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so git can see tags
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements-build.txt -r requirements-dev.txt
+      - run: black --check .
+      - run: mypy
+      - run: python -m unittest discover -s tests -t .
+
+      # The version is the tag on this commit if there is one, otherwise the short commit hash.
+      - name: Work out the version
+        id: version
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            version="$GITHUB_REF_NAME"
+            tagged=yes
+          elif version="$(git describe --tags --exact-match HEAD 2>/dev/null)"; then
+            tagged=yes
+          else
+            version="$(git rev-parse --short HEAD)"
+            tagged=no
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tagged=$tagged" >> "$GITHUB_OUTPUT"
+          echo "Building $version"
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - run: python build.py
+        env:
+          CAROLOS_VERSION: ${{ steps.version.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CaroLoS-Setup
+          path: dist/CaroLoS-Setup-*.exe
+
+      # A pushed tag publishes a release. A push to main publishes one too, unless its commit
+      # is tagged (the tag push publishes that one), in which case it is marked a pre-release
+      # named after the commit.
+      - name: Publish release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref_type == 'tag')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAGGED: ${{ steps.version.outputs.tagged }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ] && [ "$TAGGED" = "yes" ]; then
+            echo "This commit is tagged $VERSION; the tag run publishes it."
+            exit 0
+          fi
+          asset="dist/CaroLoS-Setup-$VERSION.exe"
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            gh release upload "$VERSION" "$asset" --clobber
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            gh release create "$VERSION" "$asset" --title "$VERSION" --generate-notes
+          else
+            gh release create "$VERSION" "$asset" --target "$GITHUB_SHA" --title "$VERSION" \
+              --generate-notes --prerelease
+          fi
