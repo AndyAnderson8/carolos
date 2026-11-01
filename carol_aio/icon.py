@@ -22,7 +22,7 @@ TITLE = "Carol AIO"
 # The part of the figure the tray icon zooms in on, as fractions (left, top, right, bottom):
 # her palm, flower and head. Her whole figure is too small to make out at 16 to 32 pixels.
 TRAY_CROP = (0.12, 0.02, 0.88, 0.46)
-ART_OPACITY = 0.55  # the settings picture is see-through, so it blends into the palette
+ART_OPACITY = 0.45  # the settings picture is see-through, so it blends into the palette
 SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
 PANEL = "#1d2226"
 

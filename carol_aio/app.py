@@ -96,11 +96,13 @@ class SettingsDialog(tk.Toplevel):
             padx=px(18),
         ).pack(fill="x")
 
-        # Last above the buttons' divider (below the spot where an error would show), so it sits low.
-        self._art = settings_art_photo(px(190))  # kept so Tk doesn't drop it
-        tk.Label(panel, image=self._art, bg=theme.PANEL).pack(pady=(0, px(6)))
+        # A small, faint car "driving" along the buttons' divider: its tyres sit right on the line.
+        self._art = settings_art_photo(px(120))  # kept so Tk doesn't drop it
+        tk.Label(panel, image=self._art, bg=theme.PANEL, bd=0, padx=0, pady=0).pack(
+            anchor="w", padx=(px(20), 0)
+        )
 
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x", pady=(px(8), 0))
+        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
         footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(10))
         footer.pack(fill="x")
         flat_button(footer, "Reset to defaults", self._reset, quiet=True).pack(side="left")
