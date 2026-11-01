@@ -11,8 +11,10 @@ import threading
 import time
 from collections.abc import Callable
 
+from carolos import foreground
+
 MUTEX_NAME = "Local\\CaroLoS"
-EVENT_NAME = "Local\CaroLoS-Show"
+EVENT_NAME = "Local\\CaroLoS-Show"
 ERROR_ALREADY_EXISTS = 183
 INFINITE = 0xFFFFFFFF
 WAIT_OBJECT_0 = 0
@@ -53,6 +55,7 @@ def signal_running() -> None:
     """Ask the copy that is already running to show its panel."""
     if sys.platform != "win32":
         return
+    foreground.allow_any_program()  # this copy was just started by the user; the other may take focus
     kernel32 = _kernel32()
     handle = kernel32.CreateEventW(None, False, False, EVENT_NAME)
     if handle:
