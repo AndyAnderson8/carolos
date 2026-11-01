@@ -148,12 +148,20 @@ class Flyout(tk.Toplevel):
     def _open(self, page: tk.Frame) -> None:
         """Swap the page shown in the bubble; the tools page is kept, any other is discarded."""
         old = self.page
+        shown = self.visible
+        if shown:  # swap unseen, so the new page appears all at once
+            self.attributes("-alpha", 0.0)
+            self.shape.hide()
         old.pack_forget()
         if old is not self.tools_page:
             old.destroy()
         self.page = page
         page.pack(fill="x")
-        self.refit()
+        if shown:
+            self._place()
+            self.lift()
+            self.update()
+            self.attributes("-alpha", 1.0)
 
     def close_page(self) -> None:
         """Back to the tools."""
@@ -183,6 +191,14 @@ class Flyout(tk.Toplevel):
         if not self.visible:
             self.show()
         return self.notice
+
+    def warm_up(self, tools: list[Tool]) -> None:
+        """Draw the bubble for each tool's settings page now, so opening one is instant."""
+        for tool in tools:
+            page = SettingsPage(self.host, tool, lambda *_: None, lambda: None)
+            self.update_idletasks()
+            self._bubble(self.winfo_reqwidth(), page.winfo_reqheight() + 1)
+            page.destroy()
 
     def notice_open(self) -> bool:
         return self.notice is not None and self.page is self.notice
@@ -300,6 +316,7 @@ class App(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.after(CONFIG_POLL_MS, self._poll_config)
         self.after(QUEUE_POLL_MS, self._poll_inbox)
+        self.after(1500, lambda: self.flyout.warm_up(self.tools))
         self.after(AUTO_CHECK_DELAY_MS, lambda: self.updater.check(manual=False))
 
     def post(self, action: Callable[[], None]) -> None:
