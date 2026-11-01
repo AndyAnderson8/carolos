@@ -29,6 +29,23 @@ class BubbleTest(unittest.TestCase):
             assert isinstance(pixel, tuple)
             self.assertEqual(pixel[:3], (0xF4, 0xE6, 0xC6), dx)
 
+    def test_her_hand_sticks_out_past_the_left_edge(self) -> None:
+        art = render(300, 200, COLORS)
+        outside = art.content_x - 10 - 8  # a few pixels left of the bubble's edge (pad is 10)
+        column = [art.image.getpixel((outside, y)) for y in range(art.body_y, art.body_y + 140)]
+        solid = [p for p in column if isinstance(p, tuple) and p[3] > 200]
+        self.assertTrue(solid)
+
+    def test_the_name_is_in_the_blue_space_beside_her_a_little_left_of_centre(self) -> None:
+        art = render(360, 200, COLORS)  # about as wide as the real panel
+        left, top, right, bottom = art.name_box
+        space_left, space_right = art.blue_space
+        gap_left, gap_right = left - space_left, space_right - right
+        self.assertLessEqual(abs((gap_right - gap_left) - 20), 1)  # nudged 10px left of centre
+        self.assertGreater(gap_left, 4)  # and not squeezed against her
+        band_middle = art.body_y + art.band / 2
+        self.assertLessEqual(abs((top + bottom) / 2 - band_middle), 1)
+
     def test_the_header_band_is_sea_coloured(self) -> None:
         art = render(300, 200, COLORS)
         pixel = art.image.getpixel((art.image.width - art.margin - 24, art.body_y + 14))
