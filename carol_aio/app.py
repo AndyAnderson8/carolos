@@ -83,9 +83,6 @@ class SettingsDialog(tk.Toplevel):
             ).pack(anchor="w")
         for f in self.shown:
             self._add_field(body, f, wrap)
-        self._art = settings_art_photo(px(190))  # kept so Tk doesn't drop it
-        tk.Label(body, image=self._art, bg=theme.PANEL).pack(pady=(px(2), 0))
-
         self.error = tk.StringVar()
         tk.Label(
             panel,
@@ -98,6 +95,10 @@ class SettingsDialog(tk.Toplevel):
             wraplength=wrap,
             padx=px(18),
         ).pack(fill="x")
+
+        # Last above the buttons' divider (below the spot where an error would show), so it sits low.
+        self._art = settings_art_photo(px(190))  # kept so Tk doesn't drop it
+        tk.Label(panel, image=self._art, bg=theme.PANEL).pack(pady=(0, px(6)))
 
         tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x", pady=(px(8), 0))
         footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(10))
