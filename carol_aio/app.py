@@ -373,12 +373,9 @@ class Flyout(tk.Toplevel):
         tail = (
             theme.work_area(self)[3] < self.winfo_screenheight() - 2
         )  # a taskbar below to point at
-        key = (width, height, tail, theme.PANEL, theme.OUTLINE, theme.SEA)
+        key = (width, height, tail)
         if key not in self._art:
-            dark = theme.PANEL == theme.DARK["PANEL"]
-            colors = bubble.BubbleColors(
-                theme.PANEL, theme.OUTLINE, theme.SEA, theme.ON_SEA, 0.5 if dark else 0.25
-            )
+            colors = bubble.BubbleColors(theme.PANEL, theme.OUTLINE, theme.SEA, theme.ON_SEA, 0.25)
             self._art[key] = bubble.render(width, height, colors, px, tail)
         return self._art[key]
 
@@ -394,8 +391,6 @@ class App(tk.Tk):
         theme.enable_dpi_awareness()
         super().__init__()
         theme.init_scale(self)
-        self._light = theme.system_is_light()
-        theme.use(self._light)
         self.title(f"Carol AIO {__version__}")
         self.withdraw()  # no window of its own; the tray icon is the way in
         self.tools = create_tools() if tools is None else tools
@@ -404,9 +399,11 @@ class App(tk.Tk):
         self.pending_setup: Path | None = None  # a downloaded installer to run once we exit
         self.dialog: SettingsDialog | None = None
         self.updater = Updater(self, self.post, self._update_with)
-        self.flyout = self._build_flyout()
+        self.flyout = Flyout(
+            self, self.tools, self.toggle_tool, self.open_settings, self.check_for_updates
+        )
         self.tray = Tray(
-            lambda: self.post(self.toggle_flyout),
+            lambda: self.post(self.flyout.toggle),
             lambda: self.post(self.check_for_updates),
             lambda: self.post(self.close),
         )
@@ -422,23 +419,6 @@ class App(tk.Tk):
     def post(self, action: Callable[[], None]) -> None:
         """Run ``action`` on Tk's thread; safe to call from any thread."""
         self.inbox.put(action)
-
-    def _build_flyout(self) -> Flyout:
-        return Flyout(
-            self, self.tools, self.toggle_tool, self.open_settings, self.check_for_updates
-        )
-
-    def _follow_system_theme(self) -> None:
-        """Rebuild the panel in the new colours if Windows switched light/dark."""
-        light = theme.system_is_light()
-        if light == self._light:
-            return
-        self._light = light
-        theme.use(light)
-        message = self.flyout.status.get()
-        self.flyout.destroy()
-        self.flyout = self._build_flyout()
-        self.flyout.status.set(message)
 
     @property
     def status(self) -> tk.StringVar:
@@ -461,14 +441,8 @@ class App(tk.Tk):
         if self.winfo_exists():
             self.after(QUEUE_POLL_MS, self._poll_inbox)
 
-    def toggle_flyout(self) -> None:
-        if not self.flyout.visible:
-            self._follow_system_theme()
-        self.flyout.toggle()
-
     def check_for_updates(self) -> None:
         self.flyout.hide()
-        self._follow_system_theme()
         self.updater.check(manual=True)
 
     def _update_with(self, setup: Path) -> None:
@@ -528,7 +502,6 @@ class App(tk.Tk):
     def open_settings(self, tool: Tool) -> None:
         anchor = self.flyout.corner()
         self.flyout.hide()
-        self._follow_system_theme()
         if self.dialog is not None and self.dialog.winfo_exists():
             self.dialog.destroy()
         self.dialog = SettingsDialog(self, tool, self.save_settings, anchor)

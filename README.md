@@ -79,7 +79,7 @@ tagged release.
 
 Settings live in `config.yaml` next to `CarolAIO.exe` (the repo root when run
 from source). It is created on first run. Click the gear (⚙) on a tool to edit
-its settings in the popup (it follows the Windows light/dark setting), or edit the file directly; the running app picks up
+its settings in the popup, or edit the file directly; the running app picks up
 hand edits within a second. Invalid values fall back to defaults and are
 reported at the bottom of the window.
 
