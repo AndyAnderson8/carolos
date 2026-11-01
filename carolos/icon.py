@@ -13,8 +13,7 @@ from carolos.theme import LOGO_YELLOW
 
 FIGURE = Path(__file__).with_name("assets") / "avatar_figure.png"
 HAND = Path(__file__).with_name("assets") / "avatar_hand.png"
-TITLE_FONT = Path(__file__).with_name("assets") / "Fredoka.ttf"  # OFL, see OFL.txt
-TITLE_WEIGHT = 700  # Fredoka is a variable font: this is its bold
+TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "CaroLoS"
 # The part of the figure the tray icon zooms in on, as fractions (left, top, right, bottom):
 # her palm, flower and head. Her whole figure is too small to make out at 16 to 32 pixels.
@@ -47,26 +46,16 @@ def hand_image(height: int) -> Image.Image:
     return hand.resize((round(hand.width * height / hand.height), height), Image.Resampling.LANCZOS)
 
 
-def _title_font(size: int) -> ImageFont.FreeTypeFont:
-    font = ImageFont.truetype(str(TITLE_FONT), size)
-    weights = [
-        float(TITLE_WEIGHT) if a["name"] in ("Weight", b"Weight") else float(a["default"] or 0)
-        for a in font.get_variation_axes()
-    ]
-    font.set_variation_by_axes(weights)
-    return font
-
-
 def name_image(height: int, color: str) -> Image.Image:
-    """ "CaroLoS" in Fredoka Bold, with the letters' ink exactly ``height`` pixels tall.
+    """ "CaroLoS" in Pacifico, with the letters' ink exactly ``height`` pixels tall.
 
     Drawn from the font's own measurements, so the ink runs from the very top of the tallest
     letter to the bottom of the line, with no empty text-box space above or below.
     """
     big = height * SCALE
-    probe = _title_font(1000)
+    probe = ImageFont.truetype(str(TITLE_FONT), 1000)
     _, top, _, bottom = probe.getbbox(TITLE, anchor="ls")
-    font = _title_font(round(1000 * big / (bottom - top)))
+    font = ImageFont.truetype(str(TITLE_FONT), round(1000 * big / (bottom - top)))
     left, top, right, _ = font.getbbox(TITLE, anchor="ls")  # relative to the baseline's left end
     canvas = Image.new("RGBA", (round(right - left), big), (0, 0, 0, 0))
     ImageDraw.Draw(canvas).text((-left, -top), TITLE, font=font, fill=color, anchor="ls")
