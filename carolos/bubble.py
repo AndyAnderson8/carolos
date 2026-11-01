@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
-from carol_aio.icon import figure_image, hand_image, name_image
+from carolos.icon import figure_image, hand_image, name_image
 
 SS = 3  # drawn this many times larger, then shrunk, so the edges are smooth
 NECK = 0.615  # how far down her picture the wave crosses her (0 is the top, 1 the bottom)
@@ -37,7 +37,7 @@ class Bubble:
     content_y: int
     margin: int  # transparent space beside and below the bubble (for the shadow)
     body_y: int  # where the bubble's own top edge is; she pokes up above it
-    name_box: tuple[int, int, int, int]  # left, top, right, bottom of "Carol AIO"
+    name_box: tuple[int, int, int, int]  # left, top, right, bottom of "CaroLoS"
     blue_space: tuple[int, int]  # left and right ends of the blue space the name is centred in
     band: int  # height of the blue header band
 

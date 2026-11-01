@@ -7,4 +7,4 @@ dist/
 venv/
 config.yaml
 *.spec
-carol_aio/_version.py
+carolos/_version.py

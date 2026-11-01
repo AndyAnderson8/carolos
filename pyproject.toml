@@ -6,7 +6,7 @@ target-version = ["py312"]
 python_version = "3.12"
 platform = "win32"
 strict = true
-files = ["carol_aio", "tests", "main.py", "build.py"]
+files = ["carolos", "tests", "main.py", "build.py"]
 
 [[tool.mypy.overrides]]
 module = ["pycaw.*", "comtypes.*", "PyInstaller.*", "pystray.*", "winrt.*"]

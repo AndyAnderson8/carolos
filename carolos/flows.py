@@ -8,8 +8,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
-from carol_aio import __version__, install, updates
-from carol_aio.pages import Choice, NoticePage
+from carolos import __version__, install, updates
+from carolos.pages import Choice, NoticePage
 
 Post = Callable[[Callable[[], None]], None]  # run something on the Tk thread
 
@@ -43,7 +43,7 @@ class Updater:
             if manual:
                 self._tell(
                     "Updates",
-                    "Updates apply to the installed app. Install Carol AIO with its setup "
+                    "Updates apply to the installed app. Install CaroLoS with its setup "
                     "program to get them.",
                 )
             return
@@ -72,7 +72,7 @@ class Updater:
             elif result is None or result.latest is None:
                 self._tell("Updates", "No releases have been published yet.")
             else:
-                self._tell("You're up to date", f"Carol AIO {__version__} is the latest version.")
+                self._tell("You're up to date", f"CaroLoS {__version__} is the latest version.")
 
     def _tell(self, title: str, message: str) -> None:
         self.host.show_notice(title, message, [Choice("OK", primary=True)])
@@ -80,7 +80,7 @@ class Updater:
     def _offer(self, release: updates.Release) -> None:
         self.host.show_notice(
             "Update available",
-            f"Carol AIO {release.version} is ready. You have {__version__}.",
+            f"CaroLoS {release.version} is ready. You have {__version__}.",
             [
                 Choice("Later"),
                 Choice("Update now", lambda: self._download(release), True, True),
@@ -91,13 +91,13 @@ class Updater:
     def _download(self, release: updates.Release) -> None:
         page = self.host.show_notice(
             "Updating",
-            f"Downloading Carol AIO {release.version}...",
+            f"Downloading CaroLoS {release.version}...",
             [Choice("Update now", primary=True, keep_open=True)],
         )
         page.set_choices([Choice("Update now", primary=True, keep_open=True)])
         page.lock(True)
         page.set_progress(0.0)
-        staged = Path(tempfile.mkdtemp(prefix="carol_aio_update_")) / release.asset_name
+        staged = Path(tempfile.mkdtemp(prefix="carolos_update_")) / release.asset_name
         last = [-1]
 
         def progress(received: int, total: int) -> None:

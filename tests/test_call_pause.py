@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.tools.call_pause import SoundTrigger
+from carolos.tools.call_pause import SoundTrigger
 
 
 class SoundTriggerTest(unittest.TestCase):

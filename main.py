@@ -1,4 +1,4 @@
-from carol_aio.app import main
+from carolos.app import main
 
 if __name__ == "__main__":
     main()

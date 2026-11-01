@@ -3,9 +3,10 @@ import unittest
 from typing import Any
 from unittest import mock
 
-from carol_aio import theme
-from carol_aio.pages import Choice, NoticePage, SettingsPage
-from carol_aio.tools.call_pause import CallPause
+from carolos import theme
+from carolos.widgets import Dropdown
+from carolos.pages import Choice, NoticePage, SettingsPage
+from carolos.tools.call_pause import CallPause
 
 
 def find_button(widget: tk.Misc, text: str) -> Any:
@@ -37,7 +38,7 @@ class SettingsPageTest(PageTest):
         super().setUp()
         self.saved: list[dict[str, Any]] = []
         self.closed: list[bool] = []
-        with mock.patch("carol_aio.tools.call_pause.running_audio_apps", return_value=[]):
+        with mock.patch("carolos.tools.call_pause.running_audio_apps", return_value=[]):
             self.page = SettingsPage(
                 self.root,
                 CallPause(),
@@ -96,6 +97,38 @@ class NoticePageTest(PageTest):
         page.lock(False)
         page.escape()
         self.assertEqual(done, [True])
+
+
+class DropdownTest(PageTest):
+    def test_clicking_elsewhere_in_the_app_closes_the_options(self) -> None:
+        self.root.deiconify()
+        entry = tk.Entry(self.root)
+        entry.pack()
+        dropdown = Dropdown(self.root, [("a", "A"), ("b", "B")], "a", lambda _v: None)
+        dropdown.pack()
+        self.root.update()
+        entry.focus_force()
+        self.root.update()
+        if self.root.focus_get() is not entry:
+            self.skipTest("the window could not take keyboard focus here")
+        dropdown._open()
+        self.root.update()
+        entry.focus_force()  # what a click on the panel does
+        self.root.update()
+        self.root.after(250, self.root.quit)
+        self.root.mainloop()
+        self.assertIsNone(dropdown._popup)
+
+    def test_a_click_in_the_window_closes_the_options_immediately(self) -> None:
+        self.root.deiconify()
+        other = tk.Label(self.root, text="elsewhere")
+        other.pack()
+        dropdown = Dropdown(self.root, [("a", "A")], "a", lambda _v: None)
+        dropdown.pack()
+        self.root.update()
+        dropdown._open()
+        other.event_generate("<Button-1>")
+        self.assertIsNone(dropdown._popup)
 
 
 if __name__ == "__main__":

@@ -7,8 +7,8 @@ import tkinter.font as tkfont
 from collections.abc import Callable
 from functools import partial
 
-from carol_aio import theme
-from carol_aio.theme import FONT, px
+from carolos import theme
+from carolos.theme import FONT, px
 
 SLIDE_STEPS = 6
 SLIDE_MS = 12
@@ -392,8 +392,10 @@ class Dropdown(tk.Frame):
                 widget.bind("<Enter>", partial(self._hovered, row, True))
                 widget.bind("<Leave>", partial(self._hovered, row, False))
         popup.bind("<Escape>", lambda _e: self._close())
-        popup.bind("<FocusOut>", lambda _e: popup.after(100, self._close_if_unfocused))
+        popup.bind("<FocusOut>", lambda _e: popup.after(30, self._close_if_unfocused))
         self._popup = popup
+        # A click anywhere else in our window closes the list at once, not when focus catches up.
+        self._outside = self.winfo_toplevel().bind("<Button-1>", self._outside_click, "+")
 
         popup.update_idletasks()
         width, height = self.winfo_width(), popup.winfo_reqheight()
@@ -421,12 +423,25 @@ class Dropdown(tk.Frame):
             self._on_change(key)
 
     def _close_if_unfocused(self) -> None:
-        if self._popup is not None and self._popup.focus_displayof() is None:
-            self._close(refocus=False)  # the person clicked into another app; leave focus there
+        if self._popup is None:
+            return
+        try:
+            focused = self._popup.focus_get()
+        except KeyError:  # focus is on a Tk-internal window
+            focused = None
+        if focused is None or not str(focused).startswith(str(self._popup)):
+            # They clicked elsewhere, in this app or another: close, and leave focus where it went.
+            self._close(refocus=False)
+
+    def _outside_click(self, event: tk.Event) -> None:
+        widget = str(event.widget)
+        if not widget.startswith(str(self)):  # a click on the box itself toggles it instead
+            self._close(refocus=False)
 
     def _close(self, refocus: bool = True) -> None:
         if self._popup is not None:
             popup, self._popup = self._popup, None
+            self.winfo_toplevel().unbind("<Button-1>", self._outside)
             popup.destroy()
             if refocus:  # give focus back to our window so it doesn't think it was clicked away
                 self.winfo_toplevel().focus_force()

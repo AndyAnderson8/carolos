@@ -5,9 +5,9 @@ from pathlib import Path
 import os
 from unittest import mock
 
-from carol_aio import config as cfg
-from carol_aio.config import Config, ConfigError
-from carol_aio.tool import Field, Tool
+from carolos import config as cfg
+from carolos.config import Config, ConfigError
+from carolos.tool import Field, Tool
 
 
 class RenamedToolTest(unittest.TestCase):

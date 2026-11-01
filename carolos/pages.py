@@ -11,11 +11,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from carol_aio import theme
-from carol_aio.icon import settings_art_photo
-from carol_aio.theme import FONT, px
-from carol_aio.tool import Field, Tool
-from carol_aio.widgets import Dropdown, PillButton, Segmented, Switch, flat_button, heading
+from carolos import theme
+from carolos.theme import FONT, px
+from carolos.tool import Field, Tool
+from carolos.widgets import Dropdown, PillButton, Segmented, Switch, flat_button, heading
 
 
 @dataclass(frozen=True)
@@ -83,12 +82,6 @@ class SettingsPage(tk.Frame):
             wraplength=wrap,
             padx=px(18),
         ).pack(fill="x")
-
-        # A small, faint car "driving" along the buttons' divider: its tyres sit right on the line.
-        self._art = settings_art_photo(px(104))  # kept so Tk doesn't drop it
-        tk.Label(self, image=self._art, bg=theme.PANEL, bd=0, padx=0, pady=0).pack(
-            anchor="w", padx=(px(20), 0)
-        )
 
         tk.Frame(self, bg=theme.LINE, height=1).pack(fill="x")
         footer = tk.Frame(self, bg=theme.PANEL, padx=px(12), pady=px(10))

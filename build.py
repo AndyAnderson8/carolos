@@ -1,14 +1,14 @@
 """Build the app and its installer: python build.py [--deploy]
 
-1. PyInstaller builds the app as a folder, dist/CarolAIO/.
-2. Inno Setup wraps that into dist/CarolAIO-Setup-<version>.exe. If Inno Setup isn't
+1. PyInstaller builds the app as a folder, dist/CaroLoS/.
+2. Inno Setup wraps that into dist/CaroLoS-Setup-<version>.exe. If Inno Setup isn't
    installed this step is skipped with a warning (winget install JRSoftware.InnoSetup).
 
 --deploy is for testing without reinstalling: it builds just the folder (incrementally),
 stops the running app, copies the new files over the installed copy, keeping its
 config.yaml and uninstaller, and starts it again.
 
-The version baked in is, in order: $CAROL_AIO_VERSION (set by CI), the git tag on the
+The version baked in is, in order: $CAROLOS_VERSION (set by CI), the git tag on the
 current commit, the short commit hash, or "dev". A --deploy build adds "-dev".
 """
 
@@ -22,9 +22,9 @@ from pathlib import Path
 import PyInstaller.__main__
 
 ROOT = Path(__file__).parent
-DIST_APP = ROOT / "dist" / "CarolAIO"
-VERSION_FILE = ROOT / "carol_aio" / "_version.py"
-ISS_FILE = ROOT / "installer" / "carol_aio.iss"
+DIST_APP = ROOT / "dist" / "CaroLoS"
+VERSION_FILE = ROOT / "carolos" / "_version.py"
+ISS_FILE = ROOT / "installer" / "carolos.iss"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1E326CCF-AD36-4976-B6BC-4746BF507E81}_is1"
 DETACHED = 0x00000008  # DETACHED_PROCESS
 
@@ -39,7 +39,7 @@ def git(*args: str) -> str:
 
 def resolve_version() -> str:
     return (
-        os.environ.get("CAROL_AIO_VERSION")
+        os.environ.get("CAROLOS_VERSION")
         or git("describe", "--tags", "--exact-match", "HEAD")
         or git("rev-parse", "--short", "HEAD")
         or "dev"
@@ -76,9 +76,10 @@ def installed_folder() -> Path | None:
 def deploy() -> None:
     """Swap the freshly built files into the installed app and start it again."""
     folder = installed_folder()
-    if folder is None or not (folder / "CarolAIO.exe").exists():
-        raise SystemExit("Carol AIO isn't installed, so there is nothing to update. Run the setup.")
-    subprocess.run(["taskkill", "/IM", "CarolAIO.exe", "/F", "/T"], capture_output=True)
+    if folder is None or not folder.exists():
+        raise SystemExit("CaroLoS isn't installed, so there is nothing to update. Run the setup.")
+    for name in ("CaroLoS.exe", "CarolAIO.exe"):  # the second is the app's old name
+        subprocess.run(["taskkill", "/IM", name, "/F", "/T"], capture_output=True)
     for attempt in range(10):  # Windows can hold the old exe for a moment after it exits
         time.sleep(1)
         try:
@@ -95,39 +96,40 @@ def deploy() -> None:
         except (shutil.Error, OSError):
             if attempt == 9:
                 raise
-    subprocess.Popen([str(folder / "CarolAIO.exe")], cwd=folder, creationflags=DETACHED)
+    (folder / "CarolAIO.exe").unlink(missing_ok=True)
+    subprocess.Popen([str(folder / "CaroLoS.exe")], cwd=folder, creationflags=DETACHED)
     print(f"Deployed to {folder} and restarted it.")
 
 
-parser = argparse.ArgumentParser(description="Build Carol AIO")
+parser = argparse.ArgumentParser(description="Build CaroLoS")
 parser.add_argument(
     "--deploy", action="store_true", help="update the installed copy in place, no installer"
 )
 args = parser.parse_args()
 
 version = resolve_version()
-if args.deploy and "CAROL_AIO_VERSION" not in os.environ:
+if args.deploy and "CAROLOS_VERSION" not in os.environ:
     version += "-dev"
 VERSION_FILE.write_text(f'VERSION = "{version}"\n', encoding="utf-8")
-print(f"Building Carol AIO {version}")
+print(f"Building CaroLoS {version}")
 
 PyInstaller.__main__.run(
     [
         "main.py",
         "--name",
-        "CarolAIO",
+        "CaroLoS",
         "--windowed",
         "--noconfirm",
         "--icon",
-        "assets/carol_aio.ico",
+        "assets/carolos.ico",
         "--add-data",
-        "carol_aio/assets;carol_aio/assets",
+        "carolos/assets;carolos/assets",
         "--collect-submodules",
         "comtypes",
         "--hidden-import",
         "pystray._win32",
         "--hidden-import",
-        "carol_aio._version",
+        "carolos._version",
     ]
     + ([] if args.deploy else ["--clean"])  # an incremental build is much faster
 )
@@ -137,7 +139,7 @@ if args.deploy:
 else:
     compiler = find_inno_compiler()
     if compiler is None:
-        print("WARNING: Inno Setup not found, so no installer was built (dist/CarolAIO/ is ready).")
+        print("WARNING: Inno Setup not found, so no installer was built (dist/CaroLoS/ is ready).")
     else:
         subprocess.run([compiler, f"/DAppVersion={version}", str(ISS_FILE)], check=True)
-        print(f"Installer: dist/CarolAIO-Setup-{version}.exe")
+        print(f"Installer: dist/CaroLoS-Setup-{version}.exe")

@@ -15,8 +15,8 @@ import sys
 import threading
 from typing import Any
 
-from carol_aio.audio_apps import friendly_name, running_audio_apps
-from carol_aio.tool import Field, Tool
+from carolos.audio_apps import friendly_name, running_audio_apps
+from carolos.tool import Field, Tool
 
 PROCESS_NAME = "msedge.exe"
 THRESHOLD = 0.001  # Edge reads exactly 0 when silent, so any signal counts

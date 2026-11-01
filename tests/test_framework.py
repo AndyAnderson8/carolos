@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.tool import Tool
+from carolos.tool import Tool
 
 
 class FakeTool(Tool):
