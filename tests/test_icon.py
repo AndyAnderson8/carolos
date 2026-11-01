@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.icon import figure_image, hand_image, name_image, tray_icon
+from carol_aio.icon import figure_image, hand_image, name_image, settings_art_image, tray_icon
 
 
 class NameImageTest(unittest.TestCase):
@@ -54,6 +54,39 @@ class TrayIconTest(unittest.TestCase):
             if isinstance(p, tuple) and p[3] > 200 and p[0] > 220 and 150 < p[1] < 215 and p[2] < 80
         ]
         self.assertTrue(yellow)
+
+
+class SettingsArtTest(unittest.TestCase):
+    def test_it_is_the_requested_width_and_wider_than_tall(self) -> None:
+        art = settings_art_image(300)
+        self.assertEqual(art.width, 300)
+        self.assertLess(art.height, art.width)
+
+    def test_the_background_is_cut_out(self) -> None:
+        art = settings_art_image(300)
+        for corner in (
+            (0, 0),
+            (art.width - 1, 0),
+            (0, art.height - 1),
+            (art.width - 1, art.height - 1),
+        ):
+            pixel = art.getpixel(corner)
+            assert isinstance(pixel, tuple)
+            self.assertEqual(pixel[3], 0)
+
+    def test_the_car_is_red(self) -> None:
+        art = settings_art_image(300)
+        pixels = (art.getpixel((x, y)) for y in range(art.height) for x in range(art.width))
+        red = [
+            p for p in pixels if isinstance(p, tuple) and p[3] > 100 and p[0] > 180 and p[1] < 70
+        ]
+        self.assertGreater(len(red), 1000)
+
+    def test_it_is_see_through_so_it_blends_in(self) -> None:
+        art = settings_art_image(300)
+        brightest = art.getchannel("A").getextrema()[1]
+        assert isinstance(brightest, (int, float))
+        self.assertLessEqual(brightest, round(255 * 0.6))
 
 
 if __name__ == "__main__":

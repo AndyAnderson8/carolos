@@ -14,6 +14,7 @@ from typing import Any
 from carol_aio import __version__, bubble, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
+from carol_aio.icon import settings_art_photo
 from carol_aio.layered import LayeredWindow
 from carol_aio.theme import FONT, px
 from carol_aio.tool import Field, Tool
@@ -82,7 +83,6 @@ class SettingsDialog(tk.Toplevel):
             ).pack(anchor="w")
         for f in self.shown:
             self._add_field(body, f, wrap)
-
         self.error = tk.StringVar()
         tk.Label(
             panel,
@@ -96,7 +96,13 @@ class SettingsDialog(tk.Toplevel):
             padx=px(18),
         ).pack(fill="x")
 
-        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x", pady=(px(8), 0))
+        # A small, faint car "driving" along the buttons' divider: its tyres sit right on the line.
+        self._art = settings_art_photo(px(104))  # kept so Tk doesn't drop it
+        tk.Label(panel, image=self._art, bg=theme.PANEL, bd=0, padx=0, pady=0).pack(
+            anchor="w", padx=(px(20), 0)
+        )
+
+        tk.Frame(panel, bg=theme.LINE, height=1).pack(fill="x")
         footer = tk.Frame(panel, bg=theme.PANEL, padx=px(12), pady=px(10))
         footer.pack(fill="x")
         flat_button(footer, "Reset to defaults", self._reset, quiet=True).pack(side="left")
