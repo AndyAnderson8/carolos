@@ -46,17 +46,14 @@ class TrayIconTest(unittest.TestCase):
         for size in (16, 24, 32, 48):
             self.assertEqual(tray_icon(1, 1, size).size, (size, size))
 
-    def test_the_figure_shows_her_yellow_skirt(self) -> None:
-        icon = tray_icon(0, 1, 64)  # grey when off, so any colour here would be the figure's
-        grey = icon.convert("RGBA")
+    def test_the_zoomed_in_icon_shows_her_yellow_palm(self) -> None:
         icon_on = tray_icon(1, 1, 64).convert("RGBA")
         yellow = [
             p
-            for p in (icon_on.getpixel((x, y)) for x in range(64) for y in range(40))
+            for p in (icon_on.getpixel((x, y)) for x in range(64) for y in range(30))
             if isinstance(p, tuple) and p[3] > 200 and p[0] > 220 and 150 < p[1] < 215 and p[2] < 80
         ]
         self.assertTrue(yellow)
-        self.assertEqual(grey.size, (64, 64))
 
 
 if __name__ == "__main__":

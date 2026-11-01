@@ -15,6 +15,9 @@ FIGURE = Path(__file__).with_name("assets") / "avatar_figure.png"
 HAND = Path(__file__).with_name("assets") / "avatar_hand.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
 TITLE = "Carol AIO"
+# The part of the figure the tray icon zooms in on, as fractions (left, top, right, bottom):
+# her palm, flower and head. Her whole figure is too small to make out at 16 to 32 pixels.
+TRAY_CROP = (0.12, 0.02, 0.88, 0.46)
 SCALE = 4  # the name is drawn this many times larger, then shrunk, for smooth edges
 PANEL = "#1d2226"
 
@@ -79,22 +82,27 @@ def _font(px: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 
 def tray_icon(running: int, total: int, size: int) -> Image.Image:
-    """Her whole figure over a "running/total" count; grey when nothing is running.
+    """Her palm, flower and head, zoomed in, over a "running/total" count; grey when off.
 
-    The figure is what makes it recognisable at this size: the palm, the pink body and the
-    yellow skirt.
+    Zoomed in because the yellow palm on the pink head is what she is recognised by at this size.
     """
     figure = _figure()
-    height = round(size * 0.70)
-    art = figure.resize(
-        (max(1, round(figure.width * height / figure.height)), height), Image.Resampling.LANCZOS
+    left, top, right, bottom = TRAY_CROP
+    art = figure.crop(
+        (
+            round(left * figure.width),
+            round(top * figure.height),
+            round(right * figure.width),
+            round(bottom * figure.height),
+        )
     )
+    art = art.resize((size, max(1, round(size * art.height / art.width))), Image.Resampling.LANCZOS)
     if running == 0:
         grey = art.convert("LA").convert("RGBA")
         grey.putalpha(art.getchannel("A").point(lambda a: int(a * 0.7)))
         art = grey
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    canvas.alpha_composite(art, ((size - art.width) // 2, 0))
+    canvas.alpha_composite(art, (0, 0))
 
     scale = 4
     big = Image.new("RGBA", (size * scale, size * scale), (0, 0, 0, 0))
