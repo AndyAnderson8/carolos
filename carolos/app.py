@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import ctypes
 import queue
 import time
 import tkinter as tk
@@ -13,7 +12,7 @@ from typing import Any
 
 from PIL import Image
 
-from carolos import __version__, bubble, install, single, theme
+from carolos import __version__, bubble, foreground, install, single, theme
 from carolos.config import ENV_VAR, Config, ConfigError, set_config_path
 from carolos.flows import Updater
 from carolos.layered import LayeredWindow
@@ -254,6 +253,7 @@ class Flyout(tk.Toplevel):
         self.lift()
         self.update()
         self._reveal()
+        foreground.activate(self.winfo_id())  # focus is what closes it again, so really take it
         self.focus_force()
 
     def _place(self, reveal: bool = True) -> None:

@@ -32,19 +32,6 @@ SYMBOLS = "Segoe UI Symbol"
 _scale = 1.0
 
 
-def round_corners(window: tk.Toplevel) -> None:
-    """Ask Windows 11 for smooth rounded corners on a borderless window (no-op elsewhere)."""
-    if sys.platform != "win32":
-        return
-    try:
-        window.update_idletasks()
-        hwnd = ctypes.windll.user32.GetAncestor(window.winfo_id(), 2)  # 2 = GA_ROOT
-        preference = ctypes.c_int(2)  # DWMWCP_ROUND
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 33, ctypes.byref(preference), 4)
-    except (AttributeError, OSError):
-        pass
-
-
 def enable_dpi_awareness() -> None:
     """Render crisp text on high-DPI displays (call before creating the Tk root)."""
     if sys.platform == "win32":

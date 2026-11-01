@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import sys
 import threading
-from typing import Any
 
 from carolos.audio_apps import friendly_name, running_audio_apps
 from carolos.tool import Field, Tool
