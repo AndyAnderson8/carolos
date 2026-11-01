@@ -110,14 +110,15 @@ class Updater:
             try:
                 updates.download(release, staged, progress)
             except updates.UpdateError as exc:
-                self.post(lambda: self._failed(release, str(exc)))
+                message = str(exc)  # `exc` is gone by the time the Tk thread runs the lambda
+                self.post(lambda: self._failed(release, message))
             else:
                 self.post(lambda: self.on_update(staged))
 
         threading.Thread(target=work, daemon=True).start()
 
     def _failed(self, release: updates.Release, message: str) -> None:
-        page = self.host.show_notice(
+        self.host.show_notice(
             "Couldn't update",
             message,
             [

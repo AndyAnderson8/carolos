@@ -309,10 +309,6 @@ class NoticePage(tk.Frame):
             else:
                 button.configure(state="disabled" if locked else "normal")
 
-    def set_message(self, text: str) -> None:
-        self.message.configure(text=text)
-        self.on_change()
-
     def set_status(self, text: str, fault: bool = False) -> None:
         self.status.configure(text=text, fg=theme.FAULT if fault else theme.MUTED)
         if text and not self.status.winfo_ismapped():
@@ -341,10 +337,6 @@ class NoticePage(tk.Frame):
             self.bar.create_rectangle(
                 0, 0, width * self._fraction, height, fill=theme.ACCENT, outline=""
             )
-
-    def dismiss(self) -> None:
-        """Leave this page and go back to the tools."""
-        self.on_done()
 
     def _click(self, choice: Choice) -> None:
         if not choice.keep_open:
