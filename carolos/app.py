@@ -28,6 +28,7 @@ CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
 AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
+OPEN_DELAY_MS = 600  # let the tray icon settle before the panel opens
 EDGE_GAP = 12
 OFFSCREEN = -20000  # where the panel paints before it is shown
 
@@ -417,6 +418,14 @@ class App(tk.Tk):
 
     # --- GUI actions ------------------------------------------------------
 
+    def open_panel(self) -> None:
+        """Show the panel (or bring it forward if it is already open)."""
+        if self.flyout.visible:
+            self.flyout.lift()
+            self.flyout.focus_force()
+        else:
+            self.flyout.show()
+
     def toggle_tool(self, tool: Tool, enabled: bool) -> None:
         problems = self._set_running(tool, enabled)
         self.status.set(problems[0] if problems else "")
@@ -448,15 +457,12 @@ def main(argv: list[str] | None = None) -> None:
     set_config_path(parser.parse_args(argv).config)
 
     if not single.acquire():
-        ctypes.windll.user32.MessageBoxW(
-            0,
-            "CaroLoS is already running. Look for it in the tray (the ^ arrow).",
-            "CaroLoS",
-            0x40,
-        )
+        single.signal_running()  # the copy that is running opens its panel
         return
 
     app = App()
+    single.listen(lambda: app.post(app.open_panel))
+    app.after(OPEN_DELAY_MS, app.open_panel)  # opening the app shows it, not just the tray icon
     app.mainloop()
     if app.pending_setup is not None:
         install.run_setup(app.pending_setup)

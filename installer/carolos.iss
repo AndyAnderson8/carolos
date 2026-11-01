@@ -58,7 +58,7 @@ var
 begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM CaroLoS.exe', '', SW_HIDE,
     ewWaitUntilTerminated, ResultCode);
-  Exec(ExpandConstant('{sys}	askkill.exe'), '/F /IM CarolAIO.exe', '', SW_HIDE,
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM CarolAIO.exe', '', SW_HIDE,
     ewWaitUntilTerminated, ResultCode);  { the old name }
 end;
 
