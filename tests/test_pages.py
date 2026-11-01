@@ -119,6 +119,17 @@ class DropdownTest(PageTest):
         self.root.mainloop()
         self.assertIsNone(dropdown._popup)
 
+    def test_a_click_in_the_window_closes_the_options_immediately(self) -> None:
+        self.root.deiconify()
+        other = tk.Label(self.root, text="elsewhere")
+        other.pack()
+        dropdown = Dropdown(self.root, [("a", "A")], "a", lambda _v: None)
+        dropdown.pack()
+        self.root.update()
+        dropdown._open()
+        other.event_generate("<Button-1>")
+        self.assertIsNone(dropdown._popup)
+
 
 if __name__ == "__main__":
     unittest.main()
