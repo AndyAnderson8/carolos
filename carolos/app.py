@@ -316,7 +316,7 @@ class App(tk.Tk):
         theme.enable_dpi_awareness()
         super().__init__()
         theme.init_scale(self)
-        self.title(f"CaroLOS {__version__}")
+        self.title(f"CaroLoS {__version__}")
         self.withdraw()  # no window of its own; the tray icon is the way in
         self.tools = create_tools() if tools is None else tools
         self.config_store = config or Config()
@@ -439,7 +439,7 @@ class App(tk.Tk):
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="CaroLOS")
+    parser = argparse.ArgumentParser(description="CaroLoS")
     parser.add_argument(
         "--config",
         metavar="PATH",
@@ -450,8 +450,8 @@ def main(argv: list[str] | None = None) -> None:
     if not single.acquire():
         ctypes.windll.user32.MessageBoxW(
             0,
-            "CaroLOS is already running. Look for it in the tray (the ^ arrow).",
-            "CaroLOS",
+            "CaroLoS is already running. Look for it in the tray (the ^ arrow).",
+            "CaroLoS",
             0x40,
         )
         return

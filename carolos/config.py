@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 HEADER = (
-    "# CaroLOS config. Edit here or via the gear buttons in the app;\n"
+    "# CaroLoS config. Edit here or via the gear buttons in the app;\n"
     "# changes made in this file are picked up while the app is running.\n"
 )
 

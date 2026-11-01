@@ -1,6 +1,6 @@
-; Inno Setup script for the CaroLOS installer. Build with:
+; Inno Setup script for the CaroLoS installer. Build with:
 ;   ISCC.exe /DAppVersion=v1.2.3 installer\carolos.iss
-; (build.py does this after PyInstaller has produced dist\CaroLOS\.)
+; (build.py does this after PyInstaller has produced dist\CaroLoS\.)
 
 #ifndef AppVersion
   #define AppVersion "dev"
@@ -9,17 +9,17 @@
 [Setup]
 ; Never change this GUID: it is how upgrades find the existing install.
 AppId={{1E326CCF-AD36-4976-B6BC-4746BF507E81}
-AppName=CaroLOS
+AppName=CaroLoS
 AppVersion={#AppVersion}
-AppPublisher=CaroLOS
+AppPublisher=CaroLoS
 ; Installs for the current user: no admin prompt, and the folder stays writable for config.yaml.
 PrivilegesRequired=lowest
-DefaultDirName={localappdata}\Programs\CaroLOS
+DefaultDirName={localappdata}\Programs\CaroLoS
 DisableProgramGroupPage=yes
 OutputDir=..\dist
-OutputBaseFilename=CaroLOS-Setup-{#AppVersion}
+OutputBaseFilename=CaroLoS-Setup-{#AppVersion}
 SetupIconFile=..\assets\carolos.ico
-UninstallDisplayIcon={app}\CaroLOS.exe
+UninstallDisplayIcon={app}\CaroLoS.exe
 WizardStyle=modern
 Compression=lzma2
 SolidCompression=yes
@@ -34,7 +34,7 @@ Name: "startmenuicon"; Description: "Create a &Start menu shortcut"; GroupDescri
 
 [Files]
 ; config.yaml is not listed here, so upgrades never touch it.
-Source: "..\dist\CaroLOS\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\dist\CaroLoS\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [InstallDelete]
 ; Clean up after the old name (Carol AIO) when upgrading from it.
@@ -43,20 +43,20 @@ Type: files; Name: "{autodesktop}\Carol AIO.lnk"
 Type: files; Name: "{autoprograms}\Carol AIO.lnk"
 
 [Icons]
-Name: "{autodesktop}\CaroLOS"; Filename: "{app}\CaroLOS.exe"; Tasks: desktopicon
-Name: "{autoprograms}\CaroLOS"; Filename: "{app}\CaroLOS.exe"; Tasks: startmenuicon
+Name: "{autodesktop}\CaroLoS"; Filename: "{app}\CaroLoS.exe"; Tasks: desktopicon
+Name: "{autoprograms}\CaroLoS"; Filename: "{app}\CaroLoS.exe"; Tasks: startmenuicon
 
 [Run]
 ; A normal install offers a "Launch" checkbox; a silent one (an in-app update) relaunches by itself.
-Filename: "{app}\CaroLOS.exe"; Description: "Launch CaroLOS"; Flags: nowait postinstall skipifsilent
-Filename: "{app}\CaroLOS.exe"; Flags: nowait; Check: WizardSilent
+Filename: "{app}\CaroLoS.exe"; Description: "Launch CaroLoS"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\CaroLoS.exe"; Flags: nowait; Check: WizardSilent
 
 [Code]
 procedure StopApp;
 var
   ResultCode: Integer;
 begin
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM CaroLOS.exe', '', SW_HIDE,
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM CaroLoS.exe', '', SW_HIDE,
     ewWaitUntilTerminated, ResultCode);
   Exec(ExpandConstant('{sys}	askkill.exe'), '/F /IM CarolAIO.exe', '', SW_HIDE,
     ewWaitUntilTerminated, ResultCode);  { the old name }
@@ -96,7 +96,7 @@ begin
   begin
     Config := ExpandConstant('{app}\config.yaml');
     if FileExists(Config) and not UninstallSilent then
-      if MsgBox('Also delete your CaroLOS settings?', mbConfirmation, MB_YESNO) = IDYES then
+      if MsgBox('Also delete your CaroLoS settings?', mbConfirmation, MB_YESNO) = IDYES then
         DeleteFile(Config);
     RemoveDir(ExpandConstant('{app}'));  { only succeeds if nothing else is left in it }
   end;

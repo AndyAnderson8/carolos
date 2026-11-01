@@ -1,6 +1,6 @@
 """Find and download new releases from GitHub.
 
-CI publishes ``CaroLOS-Setup-<version>.exe`` on every release. This reads the latest
+CI publishes ``CaroLoS-Setup-<version>.exe`` on every release. This reads the latest
 published (non-pre-release) one from the public Releases API.
 """
 
@@ -45,14 +45,14 @@ def parse_version(text: str) -> tuple[int, int, int] | None:
 
 
 def _is_installer(name: str) -> bool:
-    """The Setup program CI attaches to each release (CaroLOS-Setup-<version>.exe)."""
+    """The Setup program CI attaches to each release (CaroLoS-Setup-<version>.exe)."""
     return name.lower().endswith(".exe") and "setup" in name.lower()
 
 
 def _get(url: str) -> Any:
     request = urllib.request.Request(
         url,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "CaroLOS-updater"},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "CaroLoS-updater"},
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
         return json.load(response)
@@ -121,7 +121,7 @@ def check(current: str) -> CheckResult:
 
 def download(release: Release, dest: Path, progress: Callable[[int, int], None]) -> None:
     """Download the release exe to ``dest``, checking its size and checksum."""
-    request = urllib.request.Request(release.asset_url, headers={"User-Agent": "CaroLOS-updater"})
+    request = urllib.request.Request(release.asset_url, headers={"User-Agent": "CaroLoS-updater"})
     digest = hashlib.sha256()
     received = 0
     try:

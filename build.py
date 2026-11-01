@@ -1,7 +1,7 @@
 """Build the app and its installer: python build.py [--deploy]
 
-1. PyInstaller builds the app as a folder, dist/CaroLOS/.
-2. Inno Setup wraps that into dist/CaroLOS-Setup-<version>.exe. If Inno Setup isn't
+1. PyInstaller builds the app as a folder, dist/CaroLoS/.
+2. Inno Setup wraps that into dist/CaroLoS-Setup-<version>.exe. If Inno Setup isn't
    installed this step is skipped with a warning (winget install JRSoftware.InnoSetup).
 
 --deploy is for testing without reinstalling: it builds just the folder (incrementally),
@@ -22,7 +22,7 @@ from pathlib import Path
 import PyInstaller.__main__
 
 ROOT = Path(__file__).parent
-DIST_APP = ROOT / "dist" / "CaroLOS"
+DIST_APP = ROOT / "dist" / "CaroLoS"
 VERSION_FILE = ROOT / "carolos" / "_version.py"
 ISS_FILE = ROOT / "installer" / "carolos.iss"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{1E326CCF-AD36-4976-B6BC-4746BF507E81}_is1"
@@ -77,8 +77,8 @@ def deploy() -> None:
     """Swap the freshly built files into the installed app and start it again."""
     folder = installed_folder()
     if folder is None or not folder.exists():
-        raise SystemExit("CaroLOS isn't installed, so there is nothing to update. Run the setup.")
-    for name in ("CaroLOS.exe", "CarolAIO.exe"):  # the second is the app's old name
+        raise SystemExit("CaroLoS isn't installed, so there is nothing to update. Run the setup.")
+    for name in ("CaroLoS.exe", "CarolAIO.exe"):  # the second is the app's old name
         subprocess.run(["taskkill", "/IM", name, "/F", "/T"], capture_output=True)
     for attempt in range(10):  # Windows can hold the old exe for a moment after it exits
         time.sleep(1)
@@ -97,11 +97,11 @@ def deploy() -> None:
             if attempt == 9:
                 raise
     (folder / "CarolAIO.exe").unlink(missing_ok=True)
-    subprocess.Popen([str(folder / "CaroLOS.exe")], cwd=folder, creationflags=DETACHED)
+    subprocess.Popen([str(folder / "CaroLoS.exe")], cwd=folder, creationflags=DETACHED)
     print(f"Deployed to {folder} and restarted it.")
 
 
-parser = argparse.ArgumentParser(description="Build CaroLOS")
+parser = argparse.ArgumentParser(description="Build CaroLoS")
 parser.add_argument(
     "--deploy", action="store_true", help="update the installed copy in place, no installer"
 )
@@ -111,13 +111,13 @@ version = resolve_version()
 if args.deploy and "CAROLOS_VERSION" not in os.environ:
     version += "-dev"
 VERSION_FILE.write_text(f'VERSION = "{version}"\n', encoding="utf-8")
-print(f"Building CaroLOS {version}")
+print(f"Building CaroLoS {version}")
 
 PyInstaller.__main__.run(
     [
         "main.py",
         "--name",
-        "CaroLOS",
+        "CaroLoS",
         "--windowed",
         "--noconfirm",
         "--icon",
@@ -139,7 +139,7 @@ if args.deploy:
 else:
     compiler = find_inno_compiler()
     if compiler is None:
-        print("WARNING: Inno Setup not found, so no installer was built (dist/CaroLOS/ is ready).")
+        print("WARNING: Inno Setup not found, so no installer was built (dist/CaroLoS/ is ready).")
     else:
         subprocess.run([compiler, f"/DAppVersion={version}", str(ISS_FILE)], check=True)
-        print(f"Installer: dist/CaroLOS-Setup-{version}.exe")
+        print(f"Installer: dist/CaroLoS-Setup-{version}.exe")

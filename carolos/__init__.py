@@ -1,4 +1,4 @@
-"""CaroLOS: a small all-in-one host for tools."""
+"""CaroLoS: a small all-in-one host for tools."""
 
 from importlib import import_module
 

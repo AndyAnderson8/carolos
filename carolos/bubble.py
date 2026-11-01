@@ -37,7 +37,7 @@ class Bubble:
     content_y: int
     margin: int  # transparent space beside and below the bubble (for the shadow)
     body_y: int  # where the bubble's own top edge is; she pokes up above it
-    name_box: tuple[int, int, int, int]  # left, top, right, bottom of "CaroLOS"
+    name_box: tuple[int, int, int, int]  # left, top, right, bottom of "CaroLoS"
     blue_space: tuple[int, int]  # left and right ends of the blue space the name is centred in
     band: int  # height of the blue header band
 

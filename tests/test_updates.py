@@ -16,8 +16,8 @@ SAMPLE = {
     "assets": [
         {"name": "notes.txt", "browser_download_url": "https://example.test/notes"},
         {
-            "name": "CaroLOS-Setup-v1.2.0.exe",
-            "browser_download_url": "https://example.test/CaroLOS.exe",
+            "name": "CaroLoS-Setup-v1.2.0.exe",
+            "browser_download_url": "https://example.test/CaroLoS.exe",
             "size": 5,
             "digest": "sha256:" + hashlib.sha256(b"hello").hexdigest(),
         },
@@ -64,7 +64,7 @@ class LatestReleaseTest(unittest.TestCase):
             found = updates.latest_release()
         assert found is not None
         self.assertEqual(found.version, "v1.2.0")
-        self.assertEqual(found.asset_name, "CaroLOS-Setup-v1.2.0.exe")
+        self.assertEqual(found.asset_name, "CaroLoS-Setup-v1.2.0.exe")
         self.assertEqual(found.size, 5)
         self.assertEqual(found.sha256, hashlib.sha256(b"hello").hexdigest())
 
@@ -76,7 +76,7 @@ class LatestReleaseTest(unittest.TestCase):
     def test_a_bare_exe_is_not_the_installer(self) -> None:
         data = {
             **SAMPLE,
-            "assets": [{"name": "CaroLOS-v1.2.0.exe", "browser_download_url": "https://x"}],
+            "assets": [{"name": "CaroLoS-v1.2.0.exe", "browser_download_url": "https://x"}],
         }
         with mock.patch.object(updates, "_get", return_value=data):
             self.assertIsNone(updates.latest_release())

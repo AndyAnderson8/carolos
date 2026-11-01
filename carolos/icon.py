@@ -14,7 +14,7 @@ from carolos.theme import LOGO_YELLOW
 FIGURE = Path(__file__).with_name("assets") / "avatar_figure.png"
 HAND = Path(__file__).with_name("assets") / "avatar_hand.png"
 TITLE_FONT = Path(__file__).with_name("assets") / "Pacifico-Regular.ttf"  # OFL, see OFL.txt
-TITLE = "CaroLOS"
+TITLE = "CaroLoS"
 # The part of the figure the tray icon zooms in on, as fractions (left, top, right, bottom):
 # her palm, flower and head. Her whole figure is too small to make out at 16 to 32 pixels.
 TRAY_CROP = (0.12, 0.02, 0.88, 0.46)
@@ -47,7 +47,7 @@ def hand_image(height: int) -> Image.Image:
 
 
 def name_image(height: int, color: str) -> Image.Image:
-    """ "CaroLOS" in Pacifico, with the letters' ink exactly ``height`` pixels tall.
+    """ "CaroLoS" in Pacifico, with the letters' ink exactly ``height`` pixels tall.
 
     Drawn from the font's own measurements, so the ink runs from the very top of the tallest
     letter to the bottom of the line, with no empty text-box space above or below.

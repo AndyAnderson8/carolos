@@ -23,9 +23,9 @@ class Tray:
         self._icon = pystray.Icon(
             "carolos",
             tray_icon(0, 0, self._size),
-            "CaroLOS",
+            "CaroLoS",
             menu=pystray.Menu(
-                pystray.MenuItem("Open CaroLOS", lambda: on_open(), default=True),
+                pystray.MenuItem("Open CaroLoS", lambda: on_open(), default=True),
                 pystray.MenuItem("Check for updates", lambda: on_check()),
                 pystray.MenuItem("Quit", lambda: on_quit()),
             ),
@@ -42,4 +42,4 @@ class Tray:
         if (running, total) != self._counts:
             self._counts = (running, total)
             self._icon.icon = tray_icon(running, total, self._size)
-        self._icon.title = f"CaroLOS: {running} of {total} tools on"
+        self._icon.title = f"CaroLoS: {running} of {total} tools on"
