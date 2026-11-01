@@ -13,7 +13,7 @@ from typing import Any
 
 from PIL import Image
 
-from carolos import __version__, bubble, install, single, theme
+from carolos import __version__, bubble, install, outside, single, theme
 from carolos.config import ENV_VAR, Config, ConfigError, set_config_path
 from carolos.flows import Updater
 from carolos.layered import LayeredWindow
@@ -29,6 +29,7 @@ QUEUE_POLL_MS = 100
 AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
 OPEN_DELAY_MS = 600  # let the tray icon settle before the panel opens
+CLICK_POLL_MS = 80  # how often to look for a click outside the open panel
 EDGE_GAP = 12
 OFFSCREEN = -20000  # where the panel paints before it is shown
 
@@ -90,6 +91,7 @@ class Flyout(tk.Toplevel):
         self.withdraw()
         self.rows: dict[str, ToolRow] = {}
         self._hidden_at = 0.0
+        self._watching = 0
         self._shape_args: tuple[Image.Image, int, int]
         self._geometry = self._unseen = ""
         self.status = tk.StringVar()
@@ -232,6 +234,19 @@ class Flyout(tk.Toplevel):
             self.status_label.pack_forget()
         self.refit()
 
+    def _watch_clicks(self, was_down: bool, watch: int | None = None) -> None:
+        """Close on a mouse press outside the app, even if Windows never gave the panel focus."""
+        if watch is None:
+            self._watching += 1  # a newer watch replaces an older one still waiting to fire
+            watch = self._watching
+        if watch != self._watching or not self.visible:
+            return
+        down = outside.pressed()
+        if down and not was_down and outside.over_other_program():
+            self.hide()
+            return
+        self.after(CLICK_POLL_MS, lambda: self._watch_clicks(down, watch))
+
     def _hide_if_unfocused(self) -> None:
         if self.winfo_viewable() and self.focus_displayof() is None:
             self.hide()
@@ -255,6 +270,7 @@ class Flyout(tk.Toplevel):
         self.update()
         self._reveal()
         self.focus_force()
+        self._watch_clicks(outside.pressed())  # a press already in progress is not a click away
 
     def _place(self, reveal: bool = True) -> None:
         self.update_idletasks()
