@@ -11,6 +11,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 from carol_aio import __version__, bubble, install, single, theme
 from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
 from carol_aio.flows import Updater
@@ -27,6 +29,7 @@ QUEUE_POLL_MS = 100
 AUTO_CHECK_DELAY_MS = 4000  # let the tray icon settle before checking for updates
 REOPEN_GUARD_S = 0.3  # the tray click that dismissed the panel must not reopen it
 EDGE_GAP = 12
+OFFSCREEN = -20000  # where the panel paints before it is shown
 
 
 class ToolRow(tk.Frame):
@@ -86,6 +89,8 @@ class Flyout(tk.Toplevel):
         self.withdraw()
         self.rows: dict[str, ToolRow] = {}
         self._hidden_at = 0.0
+        self._shape_args: tuple[Image.Image, int, int]
+        self._geometry = self._unseen = ""
         self.status = tk.StringVar()
         self.shape = LayeredWindow()  # the bubble outline, header and tail, drawn as an image
         self._art: dict[tuple[object, ...], bubble.Bubble] = {}
@@ -149,19 +154,19 @@ class Flyout(tk.Toplevel):
         """Swap the page shown in the bubble; the tools page is kept, any other is discarded."""
         old = self.page
         shown = self.visible
-        if shown:  # swap unseen, so the new page appears all at once
-            self.attributes("-alpha", 0.0)
+        if shown:  # swap out of sight, so the new page appears all at once
             self.shape.hide()
+            self.geometry(self._unseen)
         old.pack_forget()
         if old is not self.tools_page:
             old.destroy()
         self.page = page
         page.pack(fill="x")
         if shown:
-            self._place()
-            self.lift()
+            self._place(reveal=False)
+            self.geometry(self._unseen)
             self.update()
-            self.attributes("-alpha", 1.0)
+            self._reveal()
 
     def close_page(self) -> None:
         """Back to the tools."""
@@ -242,23 +247,40 @@ class Flyout(tk.Toplevel):
     def show(self) -> None:
         for row in self.rows.values():
             row.sync()
-        self._place()
+        self._place(reveal=False)
+        self.geometry(self._unseen)  # let the controls paint out of sight first
         self.deiconify()
         self.lift()
+        self.update()
+        self._reveal()
         self.focus_force()
 
-    def _place(self) -> None:
+    def _place(self, reveal: bool = True) -> None:
         self.update_idletasks()
         w, h = self.winfo_reqwidth(), self.winfo_reqheight()
         art = self._bubble(w, h)
         right, bottom = self.corner()
         x = right - art.image.width + art.margin  # the bubble's visible edge ends at the corner
         y = bottom - art.image.height + art.margin
-        self.shape.show(art.image, x, y)
-        geometry = f"{w}x{h}+{x + art.content_x}+{y + art.content_y}"
-        self.geometry(geometry)
+        self._shape_args = (art.image, x, y)
+        self._geometry = f"{w}x{h}+{x + art.content_x}+{y + art.content_y}"
+        self._unseen = f"{w}x{h}+{OFFSCREEN}+0"
+        if reveal:
+            self.shape.show(*self._shape_args)
+            self._move_home()
+
+    def _move_home(self) -> None:
+        self.geometry(self._geometry)
         self.update_idletasks()
-        self.geometry(geometry)  # a page swap resizes the window itself first; put it back in place
+        self.geometry(
+            self._geometry
+        )  # a page swap resizes the window itself first; put it back in place
+
+    def _reveal(self) -> None:
+        """Put the painted controls and the bubble behind them on screen together."""
+        self._move_home()
+        self.shape.show(*self._shape_args)
+        self.lift()
 
     def hide(self) -> None:
         self._hidden_at = time.monotonic()
