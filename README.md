@@ -1,4 +1,4 @@
-# Carol AIO
+# CaroLOS
 
 A small all-in-one Windows app that hosts several tools. It lives in
 the system tray: click the icon to open a panel with an on/off switch for each
@@ -16,13 +16,13 @@ python main.py
 ```
 pip install -r requirements-build.txt
 winget install JRSoftware.InnoSetup   # once, to build the installer
-python build.py                       # -> dist/CarolAIO/ and dist/CarolAIO-Setup-<version>.exe
+python build.py                       # -> dist/CaroLOS/ and dist/CaroLOS-Setup-<version>.exe
 ```
 
 `build.py` runs PyInstaller to produce the app as a folder, then Inno Setup
-(`installer/carol_aio.iss`) to wrap it into the installer. Without Inno Setup it still builds
-`dist/CarolAIO/` and warns. Pushes to `main`/`dev` also build the installer in GitHub Actions
-(artifact `CarolAIO-Setup`).
+(`installer/carolos.iss`) to wrap it into the installer. Without Inno Setup it still builds
+`dist/CaroLOS/` and warns. Pushes to `main`/`dev` also build the installer in GitHub Actions
+(artifact `CaroLOS-Setup`).
 
 While testing, skip the installer: `python build.py --deploy` rebuilds just the app folder
 (incrementally), stops the running app, copies the new files over your installed copy, keeping its
@@ -32,15 +32,15 @@ only one runs at a time).
 
 ## Installing and updating
 
-Download `CarolAIO-Setup-<version>.exe` from the Releases page and run it. It installs for your
-account (no admin rights) into `%LOCALAPPDATA%\Programs\CarolAIO` by default, and the setup
+Download `CaroLOS-Setup-<version>.exe` from the Releases page and run it. It installs for your
+account (no admin rights) into `%LOCALAPPDATA%\Programs\CaroLOS` by default, and the setup
 wizard lets you pick another folder and choose whether to add a desktop and a Start menu
 shortcut. The app appears under Settings > Apps, and uninstalling asks whether to keep your
 settings. `config.yaml` lives in the install folder and is never touched by upgrades; an existing
 `config.yaml` next to the setup file is copied in on a first install. Running a newer setup over
 an installed copy upgrades it in place (it stops the running app first).
 
-Updates come from the GitHub Releases page, so the repo has to be public. Carol AIO checks a few
+Updates come from the GitHub Releases page, so the repo has to be public. CaroLOS checks a few
 seconds after it starts and, if there is a newer release, shows an **Update now** dialog. That
 downloads the new setup (checking its size and SHA-256), quits the app, and runs the setup
 silently, which upgrades the app and starts it again. **Check for updates** in the tray menu or
@@ -52,7 +52,7 @@ Only one copy runs at a time.
 
 ## Releases
 
-Every push to `main` publishes a GitHub release with `CarolAIO-Setup-<version>.exe` attached.
+Every push to `main` publishes a GitHub release with `CaroLOS-Setup-<version>.exe` attached.
 The version shown in the panel header and in the release name is:
 
 - the git tag on the commit, if it has one (tag the merge: `git tag v1.2.0 && git push --tags`);
@@ -65,9 +65,9 @@ tagged release.
 
 ## Adding a tool
 
-1. Create a module in `carol_aio/tools/` with a subclass of `carol_aio.tool.Tool`
+1. Create a module in `carolos/tools/` with a subclass of `carolos.tool.Tool`
    (`key`, `name`, `description`, `on_start`, `on_stop`).
-2. Append the class to `TOOLS` in `carol_aio/tools/__init__.py`.
+2. Append the class to `TOOLS` in `carolos/tools/__init__.py`.
 
 ## Tools
 
@@ -77,7 +77,7 @@ tagged release.
 
 ## Configuration
 
-Settings live in `config.yaml` next to `CarolAIO.exe` (the repo root when run
+Settings live in `config.yaml` next to `CaroLOS.exe` (the repo root when run
 from source). It is created on first run. Click the gear (⚙) on a tool to edit
 its settings in the popup, or edit the file directly; the running app picks up
 hand edits within a second. Invalid values fall back to defaults and are
@@ -92,8 +92,8 @@ tools:
       threshold: 0.001          # peak level (0-1) counted as audible (config.yaml only)
 ```
 
-To use a different location, run `CarolAIO.exe --config C:\path\to\config.yaml`
-(e.g. in a shortcut) or set the `CAROL_AIO_CONFIG` environment variable.
+To use a different location, run `CaroLOS.exe --config C:\path\to\config.yaml`
+(e.g. in a shortcut) or set the `CAROLOS_CONFIG` environment variable.
 
 Tools marked `enabled: true` start automatically when the app opens.
 

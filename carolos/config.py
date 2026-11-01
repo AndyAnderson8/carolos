@@ -22,7 +22,7 @@ from typing import Any
 import yaml
 
 HEADER = (
-    "# Carol AIO config. Edit here or via the gear buttons in the app;\n"
+    "# CaroLOS config. Edit here or via the gear buttons in the app;\n"
     "# changes made in this file are picked up while the app is running.\n"
 )
 
@@ -31,7 +31,7 @@ class ConfigError(Exception):
     pass
 
 
-ENV_VAR = "CAROL_AIO_CONFIG"
+ENV_VAR = "CAROLOS_CONFIG"
 
 # Tools that were renamed: old key -> new key. Saved settings move over on load.
 RENAMED_TOOLS = {"edge_audio_pause": "call_pause"}
@@ -46,7 +46,7 @@ def set_config_path(path: str | None) -> None:
 
 
 def default_config_path() -> Path:
-    """``--config`` (via ``set_config_path``) > $CAROL_AIO_CONFIG > next to the exe."""
+    """``--config`` (via ``set_config_path``) > $CAROLOS_CONFIG > next to the exe."""
     override = _override or os.environ.get(ENV_VAR)
     if override:
         return Path(override).expanduser()

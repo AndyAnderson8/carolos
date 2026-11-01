@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 import pystray
 
-from carol_aio.icon import tray_icon, tray_pixels
+from carolos.icon import tray_icon, tray_pixels
 
 
 class Tray:
@@ -21,11 +21,11 @@ class Tray:
         self._counts = (0, 0)
         self._size = tray_pixels()
         self._icon = pystray.Icon(
-            "carol_aio",
+            "carolos",
             tray_icon(0, 0, self._size),
-            "Carol AIO",
+            "CaroLOS",
             menu=pystray.Menu(
-                pystray.MenuItem("Open Carol AIO", lambda: on_open(), default=True),
+                pystray.MenuItem("Open CaroLOS", lambda: on_open(), default=True),
                 pystray.MenuItem("Check for updates", lambda: on_check()),
                 pystray.MenuItem("Quit", lambda: on_quit()),
             ),
@@ -42,4 +42,4 @@ class Tray:
         if (running, total) != self._counts:
             self._counts = (running, total)
             self._icon.icon = tray_icon(running, total, self._size)
-        self._icon.title = f"Carol AIO: {running} of {total} tools on"
+        self._icon.title = f"CaroLOS: {running} of {total} tools on"

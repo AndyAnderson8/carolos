@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.bubble import BubbleColors, render
+from carolos.bubble import BubbleColors, render
 
 COLORS = BubbleColors("#f4e6c6", "#43261a", "#1d93b3", "#fff6df", 0.3)
 

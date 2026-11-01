@@ -7,8 +7,8 @@ import tkinter.font as tkfont
 from collections.abc import Callable
 from functools import partial
 
-from carol_aio import theme
-from carol_aio.theme import FONT, px
+from carolos import theme
+from carolos.theme import FONT, px
 
 SLIDE_STEPS = 6
 SLIDE_MS = 12

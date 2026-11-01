@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest import mock
 
-from carol_aio.tools import call_pause
+from carolos.tools import call_pause
 
 PLAYING, PAUSED = 4, 5
 

@@ -3,9 +3,9 @@ import unittest
 from typing import Any
 from unittest import mock
 
-from carol_aio import theme
-from carol_aio.pages import Choice, NoticePage, SettingsPage
-from carol_aio.tools.call_pause import CallPause
+from carolos import theme
+from carolos.pages import Choice, NoticePage, SettingsPage
+from carolos.tools.call_pause import CallPause
 
 
 def find_button(widget: tk.Misc, text: str) -> Any:
@@ -37,7 +37,7 @@ class SettingsPageTest(PageTest):
         super().setUp()
         self.saved: list[dict[str, Any]] = []
         self.closed: list[bool] = []
-        with mock.patch("carol_aio.tools.call_pause.running_audio_apps", return_value=[]):
+        with mock.patch("carolos.tools.call_pause.running_audio_apps", return_value=[]):
             self.page = SettingsPage(
                 self.root,
                 CallPause(),

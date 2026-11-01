@@ -11,10 +11,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from carol_aio import theme
-from carol_aio.theme import FONT, px
-from carol_aio.tool import Field, Tool
-from carol_aio.widgets import Dropdown, PillButton, Segmented, Switch, flat_button, heading
+from carolos import theme
+from carolos.theme import FONT, px
+from carolos.tool import Field, Tool
+from carolos.widgets import Dropdown, PillButton, Segmented, Switch, flat_button, heading
 
 
 @dataclass(frozen=True)

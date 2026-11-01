@@ -7,8 +7,8 @@ this package with a ``Tool`` subclass and append the class to ``TOOLS``.
 
 from __future__ import annotations
 
-from carol_aio.tool import Tool
-from carol_aio.tools.call_pause import CallPause
+from carolos.tool import Tool
+from carolos.tools.call_pause import CallPause
 
 TOOLS: list[type[Tool]] = [CallPause]
 

@@ -1,8 +1,8 @@
 import unittest
 
-from carol_aio.audio_apps import friendly_name
-from carol_aio.tool import Field
-from carol_aio.tools.call_pause import CallPause
+from carolos.audio_apps import friendly_name
+from carolos.tool import Field
+from carolos.tools.call_pause import CallPause
 
 
 class ChoiceFieldTest(unittest.TestCase):

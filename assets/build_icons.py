@@ -1,7 +1,7 @@
 """Build the exe icon and the character artwork from assets/avatar_source.png.
 
 The source is the character on a flat background; this cuts it out and writes
-assets/carol_aio.ico plus, in carol_aio/assets/: avatar_figure.png (her whole figure, used in
+assets/carolos.ico plus, in carolos/assets/: avatar_figure.png (her whole figure, used in
 the panel header and the tray icon) and avatar_hand.png (just her left hand and forearm, on a
 canvas the same size, so the header can draw it in front of the wavy edge).
 Run from the repo root: python assets/build_icons.py
@@ -92,12 +92,12 @@ def main() -> None:
     figure = cutout.crop(FIGURE_BOX)
     figure.thumbnail((FIGURE_PX, FIGURE_PX), Image.Resampling.LANCZOS)
     scale = figure.width / (FIGURE_BOX[2] - FIGURE_BOX[0])
-    assets = HERE.parent / "carol_aio" / "assets"
+    assets = HERE.parent / "carolos" / "assets"
     figure.save(assets / "avatar_figure.png", optimize=True)
     hand_layer(figure, scale).save(assets / "avatar_hand.png", optimize=True)
 
-    rounded_tile(Image.open(SOURCE)).save(HERE / "carol_aio.ico", sizes=[(s, s) for s in SIZES])
-    print("wrote carol_aio.ico, avatar_figure.png and avatar_hand.png")
+    rounded_tile(Image.open(SOURCE)).save(HERE / "carolos.ico", sizes=[(s, s) for s in SIZES])
+    print("wrote carolos.ico, avatar_figure.png and avatar_hand.png")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import ctypes
 import sys
 import time
 
-MUTEX_NAME = "Local\\CarolAIO"
+MUTEX_NAME = "Local\\CaroLOS"
 ERROR_ALREADY_EXISTS = 183
 
 _held = 0  # kept for the life of the process; Windows frees it on exit

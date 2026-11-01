@@ -13,16 +13,16 @@ from typing import Any
 
 from PIL import Image
 
-from carol_aio import __version__, bubble, install, single, theme
-from carol_aio.config import ENV_VAR, Config, ConfigError, set_config_path
-from carol_aio.flows import Updater
-from carol_aio.layered import LayeredWindow
-from carol_aio.theme import FONT, px
-from carol_aio.pages import Choice, NoticePage, SettingsPage
-from carol_aio.tool import Tool
-from carol_aio.tools import create_tools
-from carol_aio.tray import Tray
-from carol_aio.widgets import GearButton, Switch, flat_button, heading
+from carolos import __version__, bubble, install, single, theme
+from carolos.config import ENV_VAR, Config, ConfigError, set_config_path
+from carolos.flows import Updater
+from carolos.layered import LayeredWindow
+from carolos.theme import FONT, px
+from carolos.pages import Choice, NoticePage, SettingsPage
+from carolos.tool import Tool
+from carolos.tools import create_tools
+from carolos.tray import Tray
+from carolos.widgets import GearButton, Switch, flat_button, heading
 
 CONFIG_POLL_MS = 1000
 QUEUE_POLL_MS = 100
@@ -316,7 +316,7 @@ class App(tk.Tk):
         theme.enable_dpi_awareness()
         super().__init__()
         theme.init_scale(self)
-        self.title(f"Carol AIO {__version__}")
+        self.title(f"CaroLOS {__version__}")
         self.withdraw()  # no window of its own; the tray icon is the way in
         self.tools = create_tools() if tools is None else tools
         self.config_store = config or Config()
@@ -439,7 +439,7 @@ class App(tk.Tk):
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Carol AIO")
+    parser = argparse.ArgumentParser(description="CaroLOS")
     parser.add_argument(
         "--config",
         metavar="PATH",
@@ -450,8 +450,8 @@ def main(argv: list[str] | None = None) -> None:
     if not single.acquire():
         ctypes.windll.user32.MessageBoxW(
             0,
-            "Carol AIO is already running. Look for it in the tray (the ^ arrow).",
-            "Carol AIO",
+            "CaroLOS is already running. Look for it in the tray (the ^ arrow).",
+            "CaroLOS",
             0x40,
         )
         return

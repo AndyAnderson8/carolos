@@ -1,6 +1,6 @@
 import unittest
 
-from carol_aio.icon import figure_image, hand_image, name_image, tray_icon
+from carolos.icon import figure_image, hand_image, name_image, tray_icon
 
 
 class NameImageTest(unittest.TestCase):
