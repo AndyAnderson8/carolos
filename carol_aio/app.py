@@ -97,7 +97,7 @@ class SettingsDialog(tk.Toplevel):
         ).pack(fill="x")
 
         # A small, faint car "driving" along the buttons' divider: its tyres sit right on the line.
-        self._art = settings_art_photo(px(120))  # kept so Tk doesn't drop it
+        self._art = settings_art_photo(px(104))  # kept so Tk doesn't drop it
         tk.Label(panel, image=self._art, bg=theme.PANEL, bd=0, padx=0, pady=0).pack(
             anchor="w", padx=(px(20), 0)
         )
